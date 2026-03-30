@@ -1,4 +1,6 @@
 import { AuthProvider, useAuth } from './context/AuthProvider'
+import { ThemeProvider } from './context/ThemeProvider'
+import { ToastProvider } from './components/ui/toast'
 import DailyNoteApplication from './components/DailyNoteApplication'
 import LoginPage from './components/LoginPage'
 
@@ -7,12 +9,12 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f7f6f3] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-2">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-2">
             D<span className="text-slate-400">.</span>Ops
           </h1>
-          <div className="animate-spin h-6 w-6 border-2 border-slate-900 border-t-transparent rounded-full mx-auto mt-4" />
+          <div className="animate-spin h-6 w-6 border-2 border-slate-900 dark:border-slate-100 border-t-transparent rounded-full mx-auto mt-4" />
         </div>
       </div>
     )
@@ -23,9 +25,13 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

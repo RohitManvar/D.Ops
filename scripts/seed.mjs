@@ -7,208 +7,177 @@ const supabase = createClient(
 
 const notes = [
   {
-    date: '2026-02-05',
+    date: '2026-02-03',
+    project: 'VSM Automation Tool',
+    summary: '',
+    updates: [
+      { id: crypto.randomUUID(), text: 'React Application build for VSM tool', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing task A3 multiple pages implementation and A4 Improvements', done: false },
+    ],
+    blockers: '',
+    tomorrow: '',
+  },
+  {
+    date: '2026-02-04',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
       { id: crypto.randomUUID(), text: 'React Application build for VSM tool and Design into React', done: true },
-      { id: crypto.randomUUID(), text: 'Prepare Presentation for Directors Reviews', done: true },
-      { id: crypto.randomUUID(), text: '14:30 to 16:00 Presentation and Meeting with Directors', done: true },
-      { id: crypto.randomUUID(), text: 'CSM plotting changes in React App', done: true },
+      { id: crypto.randomUUID(), text: 'Handling TailwindCSS errors and Canvas Changes', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing task A3 multiple pages implementation and A4 Improvements', done: false },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-02-06',
+    date: '2026-02-09',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'React Application build for VSM tool and Design into React', done: true },
-      { id: crypto.randomUUID(), text: 'Implementing Standard Symbols in CSM', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing React Application build and CSM plotting Improvement', done: false },
+      { id: crypto.randomUUID(), text: 'Ongoing task Implementing Standard Symbols in CSM and Test Deferent Inputs', done: false },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-03',
+    date: '2026-02-10',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Working on Analytics page', done: true },
-      { id: crypto.randomUUID(), text: 'Projects.jsx and Setting.jsx', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on User Panel', done: false },
+      { id: crypto.randomUUID(), text: 'Ongoing React Application build and CSM plotting Improvement', done: false },
+      { id: crypto.randomUUID(), text: 'Ongoing task Implementing Standard Symbols in CSM and Test Deferent Inputs', done: false },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-05',
+    date: '2026-02-11',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Working on CSMCanvas to improve Design', done: true },
-      { id: crypto.randomUUID(), text: 'ProcessBuilder changes Dynamic box', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing Task: All the Panels', done: false },
+      { id: crypto.randomUUID(), text: 'A3 PDF changes and Inventory Changes', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing task Implementing Standard Symbols in CSM and Inventory selection in Canvas', done: false },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-06',
+    date: '2026-02-12',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Working on FSMCanvas Design', done: true },
-      { id: crypto.randomUUID(), text: 'FSMBuilder.jsx and FSMCanvas.jsx', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing Task: Implementation of FSM', done: false },
+      { id: crypto.randomUUID(), text: 'Ladder Inventory Changes in CSM map', done: true },
+      { id: crypto.randomUUID(), text: 'Meeting with Vishal sir 2:00 to 2:30', done: true },
+      { id: crypto.randomUUID(), text: 'Meeting with Aakash sir 5:30 to 6:15', done: true },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-09',
+    date: '2026-02-13',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Working on FSMCanvas Design', done: true },
-      { id: crypto.randomUUID(), text: 'Analyticsreport.jsx and FSMCanvas.jsx', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing Task: Implementation of FSM', done: false },
+      { id: crypto.randomUUID(), text: 'Created weekly timeline Gantt Chart', done: true },
+      { id: crypto.randomUUID(), text: 'Create Application for VSM tool', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on Login, Dashboard and Sequence builder pages', done: false },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-10',
+    date: '2026-02-17',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Working on Database Design', done: true },
-      { id: crypto.randomUUID(), text: 'Analyticsreport.jsx and learn about schemas', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing Task: Implementation of FSM and Database', done: false },
+      { id: crypto.randomUUID(), text: 'React Application for VSM tool', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on Dashboard and Sequence builder pages', done: false },
+      { id: crypto.randomUUID(), text: 'Working on Super Admin Side', done: true },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-11',
+    date: '2026-02-18',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Working on Database Design', done: true },
-      { id: crypto.randomUUID(), text: 'Analyticsreport.jsx and Loading animations', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing Task: Implementation of FSM and Database', done: false },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on Dashboard and Sequence builder pages', done: false },
+      { id: crypto.randomUUID(), text: 'ProjectSetup and Inventory Conversion into days', done: true },
+      { id: crypto.randomUUID(), text: 'Working on Super Admin Side and VSM PPT review', done: true },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-13',
+    date: '2026-02-19',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Working on Database Design (3NF)', done: true },
-      { id: crypto.randomUUID(), text: 'Analyticsreport.jsx with filters', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing Task: Implementation of Backend FastAPI', done: false },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on CSMCanvas and Sequence builder pages', done: false },
+      { id: crypto.randomUUID(), text: 'ProjectSetup and Supplier & Customer Info', done: true },
+      { id: crypto.randomUUID(), text: 'Working on Super Admin Side', done: true },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-16',
+    date: '2026-02-20',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Database Connectivity With Backend and Creating APIs', done: true },
+      { id: crypto.randomUUID(), text: 'ProjectSetup and Supplier & Customer Info', done: true },
+      { id: crypto.randomUUID(), text: '14:00 to 14:45 meeting with Dr. Viral Kapadiya', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on CSMCanvas, Projects and Organization pages', done: false },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-17',
+    date: '2026-02-23',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'FastAPI and Creating Deferent API for Calling', done: true },
-      { id: crypto.randomUUID(), text: 'Database Design reference from YouTube', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on Super Admin Panels Projects page', done: false },
+      { id: crypto.randomUUID(), text: 'AllProjects.jsx and Dashboard.jsx', done: true },
+      { id: crypto.randomUUID(), text: 'Working on Process Builder page', done: true },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-18',
+    date: '2026-02-24',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'FastAPI and Creating Deferent API for Calling', done: true },
-      { id: crypto.randomUUID(), text: 'Plan for Improvement Card on FSM', done: true },
+      { id: crypto.randomUUID(), text: 'Working on Super Admin Panels Organization page', done: true },
+      { id: crypto.randomUUID(), text: 'Organization.jsx and Notifications.jsx', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on Admin Panel', done: false },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-19',
+    date: '2026-02-25',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'FastAPI and Creating Deferent API for Calling', done: true },
-      { id: crypto.randomUUID(), text: 'Implementation of Improvement Card on FSM (New feature)', done: true },
+      { id: crypto.randomUUID(), text: 'Working on Admin Panels Dashboard page', done: true },
+      { id: crypto.randomUUID(), text: 'Dashboard.jsx and Organization.jsx', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on Admin Panel and Role Assign', done: false },
     ],
     blockers: '',
     tomorrow: '',
   },
   {
-    date: '2026-03-23',
+    date: '2026-02-26',
     project: 'VSM Automation Tool',
     summary: '',
     updates: [
-      { id: crypto.randomUUID(), text: 'Ongoing task: FastAPI and Creating Deferent API for Calling', done: false },
-      { id: crypto.randomUUID(), text: 'Implementation of Improvement Card on FSM (New feature)', done: true },
-    ],
-    blockers: '',
-    tomorrow: '',
-  },
-  {
-    date: '2026-03-24',
-    project: 'VSM Automation Tool',
-    summary: '',
-    updates: [
-      { id: crypto.randomUUID(), text: 'Meeting with Aakash Sir 14:30 to 15:00', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing task: implementation of Improvement Card on FSM (New feature)', done: false },
-      { id: crypto.randomUUID(), text: 'Meeting with Samip 18:45 to 19:30', done: true },
-    ],
-    blockers: '',
-    tomorrow: '',
-  },
-  {
-    date: '2026-03-25',
-    project: 'VSM Automation Tool',
-    summary: '',
-    updates: [
-      { id: crypto.randomUUID(), text: 'Working on Dynamic Excel Upload', done: true },
-      { id: crypto.randomUUID(), text: 'Ongoing task: implementation of Improvement Card on FSM', done: false },
-    ],
-    blockers: '',
-    tomorrow: '',
-  },
-  {
-    date: '2026-03-26',
-    project: 'VSM Automation Tool',
-    summary: '',
-    updates: [
-      { id: crypto.randomUUID(), text: 'Ongoing task: Working on Dynamic Excel Upload', done: false },
-      { id: crypto.randomUUID(), text: 'Made changes for Pilot testing in Process Builder page', done: true },
-    ],
-    blockers: '',
-    tomorrow: '',
-  },
-  {
-    date: '2026-03-27',
-    project: 'VSM Automation Tool',
-    summary: '',
-    updates: [
-      { id: crypto.randomUUID(), text: 'Ongoing task: Working on Dynamic Excel Upload', done: false },
-      { id: crypto.randomUUID(), text: 'Made changes for Pilot testing in Process Builder page and Auto save function', done: true },
+      { id: crypto.randomUUID(), text: 'Working on User and Admin Panels pages', done: true },
+      { id: crypto.randomUUID(), text: 'Analytics.jsx and Projects.jsx', done: true },
+      { id: crypto.randomUUID(), text: 'Ongoing Task: Working on Admin Panel and User Panel', done: false },
     ],
     blockers: '',
     tomorrow: '',
@@ -220,7 +189,6 @@ function buildWhatsappMessage(note) {
     .filter((u) => u.text.trim())
     .map((u) => `• ${u.text.trim()}`)
     .join('\n')
-
   const lines = [
     `Daily Update – ${note.date}`,
     `Project: ${note.project || 'Project'}`,
@@ -228,56 +196,29 @@ function buildWhatsappMessage(note) {
     'Work done:',
     completed || '• No updates added yet',
   ]
-
   if (note.blockers.trim()) lines.push('', `Blockers: ${note.blockers.trim()}`)
   if (note.tomorrow.trim()) lines.push('', `Next: ${note.tomorrow.trim()}`)
-
   return lines.join('\n')
 }
 
 async function seed() {
-  console.log('🔐 Signing up user...')
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  console.log('🔐 Signing in...')
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: 'rohitmanvar123@gmail.com',
     password: '#Rohit120',
   })
-
-  if (signUpError) {
-    console.log('Sign up failed, trying sign in...', signUpError.message)
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: 'rohitmanvar123@gmail.com',
-      password: '#Rohit120',
-    })
-    if (signInError) {
-      console.error('❌ Sign in also failed:', signInError.message)
-      process.exit(1)
-    }
-    console.log('✅ Signed in as:', signInData.user.email)
-  } else {
-    console.log('✅ User created:', signUpData.user?.email)
-    // Try to sign in immediately (in case email confirmation is disabled)
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: 'rohitmanvar123@gmail.com',
-      password: '#Rohit120',
-    })
-    if (signInError) {
-      console.log('⚠️  Email confirmation may be required. Check your email and then re-run this script.')
-      process.exit(1)
-    }
-    console.log('✅ Signed in as:', signInData.user.email)
-  }
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    console.error('❌ No authenticated user found')
+  if (error) {
+    console.error('❌ Sign in failed:', error.message)
     process.exit(1)
   }
+  console.log('✅ Signed in as:', data.user.email)
 
-  console.log(`\n📝 Inserting ${notes.length} daily notes for user ${user.id}...\n`)
+  const userId = data.user.id
+  console.log(`\n📝 Inserting ${notes.length} daily notes...\n`)
 
   for (const note of notes) {
     const record = {
-      user_id: user.id,
+      user_id: userId,
       date: note.date,
       project: note.project,
       summary: note.summary,
@@ -286,9 +227,7 @@ async function seed() {
       tomorrow: note.tomorrow,
       whatsapp_message: buildWhatsappMessage(note),
     }
-
     const { error } = await supabase.from('notes').insert(record)
-
     if (error) {
       console.error(`  ❌ ${note.date}: ${error.message}`)
     } else {

@@ -8,7 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, CheckCircle2, ClipboardList, Download, FileText, Filter, LogOut, Menu, MessageSquareText, Plus, Search, Trash2 } from "lucide-react";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
+import { useTheme } from "@/context/ThemeProvider";
+import { CalendarDays, ClipboardList, Download, FileText, Filter, LogOut, Menu, MessageSquareText, Moon, Plus, Search, Sun, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthProvider";
 
@@ -100,14 +103,34 @@ function buildWeeklyReport(notes) {
   ].join("\n");
 }
 
+// Search highlight helper
+function HighlightText({ text, query }) {
+  if (!query.trim()) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+          <span key={i} className="search-highlight">{part}</span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
 export default function DailyNoteApplication() {
   const { user, signOut } = useAuth();
+  const { dark, toggleTheme } = useTheme();
+  const { addToast } = useToast();
   const [notes, setNotes] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingNotes, setLoadingNotes] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const saveTimerRef = useRef(null);
 
   // Load notes from Supabase on mount
@@ -125,24 +148,43 @@ export default function DailyNoteApplication() {
 
     if (error) {
       console.error("Error loading notes:", error);
+      addToast("Failed to load notes", "error");
       setLoadingNotes(false);
       return;
     }
 
-    if (data && data.length > 0) {
-      setNotes(data);
-      setSelectedId(data[0].id);
-    } else {
-      // Create initial note for new users
-      const initial = createEmptyNote(user.id);
-      initial.whatsapp_message = buildWhatsappMessage(initial);
+    let allNotes = data || [];
+
+    // Auto-generate today's note if it doesn't exist
+    const today = todayISO();
+    const hasTodayNote = allNotes.some((n) => n.date === today);
+
+    if (!hasTodayNote) {
+      const todayNote = createEmptyNote(user.id);
+      todayNote.whatsapp_message = buildWhatsappMessage(todayNote);
+
       const { data: inserted, error: insertError } = await supabase
         .from("notes")
-        .insert(initial)
+        .insert(todayNote)
         .select()
         .single();
 
       if (!insertError && inserted) {
+        allNotes = [inserted, ...allNotes];
+        addToast("Today's note created automatically", "success");
+      }
+    }
+
+    if (allNotes.length > 0) {
+      setNotes(allNotes);
+      // Select today's note by default
+      const todayNote = allNotes.find((n) => n.date === today);
+      setSelectedId(todayNote?.id || allNotes[0].id);
+    } else {
+      const initial = createEmptyNote(user.id);
+      initial.whatsapp_message = buildWhatsappMessage(initial);
+      const { data: inserted } = await supabase.from("notes").insert(initial).select().single();
+      if (inserted) {
         setNotes([inserted]);
         setSelectedId(inserted.id);
       }
@@ -153,21 +195,27 @@ export default function DailyNoteApplication() {
   // Debounced save to Supabase
   const saveNote = useCallback(async (noteToSave) => {
     setSaving(true);
-    const { id, user_id, ...rest } = noteToSave;
+    const { id, user_id, created_at, ...rest } = noteToSave;
     const { error } = await supabase
       .from("notes")
       .update({ ...rest, updated_at: new Date().toISOString() })
       .eq("id", id)
       .eq("user_id", user.id);
 
-    if (error) console.error("Save error:", error);
+    if (error) {
+      console.error("Save error:", error);
+      addToast("Failed to save", "error");
+    }
     setSaving(false);
-  }, [user.id]);
+  }, [user.id, addToast]);
 
   const debouncedSave = useCallback((noteToSave) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => saveNote(noteToSave), 600);
-  }, [saveNote]);
+    saveTimerRef.current = setTimeout(() => {
+      saveNote(noteToSave);
+      addToast("Note saved", "success");
+    }, 800);
+  }, [saveNote, addToast]);
 
   useEffect(() => {
     if (!notes.length) return;
@@ -208,13 +256,14 @@ export default function DailyNoteApplication() {
       .single();
 
     if (error) {
-      console.error("Error creating note:", error);
+      addToast("Failed to create note", "error");
       return;
     }
 
     setNotes((prev) => [inserted, ...prev]);
     setSelectedId(inserted.id);
     setSidebarOpen(false);
+    addToast("New note created", "success");
   };
 
   const deleteSelected = async () => {
@@ -227,7 +276,7 @@ export default function DailyNoteApplication() {
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("Error deleting note:", error);
+      addToast("Failed to delete note", "error");
       return;
     }
 
@@ -236,7 +285,6 @@ export default function DailyNoteApplication() {
       setNotes(remaining);
       setSelectedId(remaining[0].id);
     } else {
-      // Create a fresh note if all deleted
       const fresh = createEmptyNote(user.id);
       fresh.whatsapp_message = buildWhatsappMessage(fresh);
       const { data: inserted } = await supabase.from("notes").insert(fresh).select().single();
@@ -245,6 +293,8 @@ export default function DailyNoteApplication() {
         setSelectedId(inserted.id);
       }
     }
+    addToast("Note deleted", "deleted");
+    setConfirmOpen(false);
   };
 
   const addUpdateRow = () => {
@@ -261,6 +311,7 @@ export default function DailyNoteApplication() {
 
   const copyText = async (text) => {
     await navigator.clipboard.writeText(text);
+    addToast("Copied to clipboard!", "copied");
   };
 
   const exportWeekly = () => {
@@ -274,6 +325,7 @@ export default function DailyNoteApplication() {
     a.download = `weekly-report-${week.replace(/\s+/g, "-")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+    addToast("Weekly report exported!", "success");
   };
 
   const weeklyPreview = useMemo(() => {
@@ -287,25 +339,33 @@ export default function DailyNoteApplication() {
 
   if (loadingNotes) {
     return (
-      <div className="min-h-screen bg-[#f7f6f3] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-2">
             D<span className="text-slate-400">.</span>Ops
           </h1>
-          <p className="text-sm text-slate-500 mb-4">Loading your notes...</p>
-          <div className="animate-spin h-6 w-6 border-2 border-slate-900 border-t-transparent rounded-full mx-auto" />
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Loading your notes...</p>
+          <div className="animate-spin h-6 w-6 border-2 border-slate-900 dark:border-slate-100 border-t-transparent rounded-full mx-auto" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f6f3] text-slate-900">
+    <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete Note"
+        message={`Delete the note for ${selected?.date}? This action cannot be undone.`}
+        onConfirm={deleteSelected}
+        onCancel={() => setConfirmOpen(false)}
+      />
+
       <div className="mx-auto max-w-7xl px-3 py-3 md:px-6 md:py-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-4 rounded-[28px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur md:p-5"
+          className="mb-4 rounded-[28px] border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800/90 p-4 shadow-sm backdrop-blur md:p-5"
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-3">
@@ -316,7 +376,7 @@ export default function DailyNoteApplication() {
                 <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
                   D<span className="text-slate-400">.</span>Ops
                 </h1>
-                <p className="mt-1 text-sm text-slate-600">Daily tracking, WhatsApp updates, and weekly report export.</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Daily tracking, WhatsApp updates, and weekly report export.</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -327,6 +387,9 @@ export default function DailyNoteApplication() {
                 </span>
               )}
               <span className="text-xs text-slate-400 hidden md:block">{user?.email}</span>
+              <Button variant="outline" size="icon" className="rounded-2xl" onClick={toggleTheme} title={dark ? "Light mode" : "Dark mode"}>
+                {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
               <Button onClick={addNewNote} className="rounded-2xl">
                 <Plus className="mr-2 h-4 w-4" /> New Note
               </Button>
@@ -342,17 +405,17 @@ export default function DailyNoteApplication() {
 
         <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
           <aside className={`${sidebarOpen ? "block" : "hidden"} lg:block`}>
-            <Card className="rounded-[28px] border-slate-200 bg-white shadow-sm">
+            <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
               <CardHeader className="space-y-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <ClipboardList className="h-5 w-5" /> Notes
                 </CardTitle>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search notes" className="rounded-2xl border-slate-200 pl-9" />
+                  <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search notes" className="rounded-2xl border-slate-200 dark:border-slate-600 pl-9" />
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 max-h-[60vh] overflow-y-auto">
                 {filtered.map((note) => (
                   <button
                     key={note.id}
@@ -360,12 +423,20 @@ export default function DailyNoteApplication() {
                       setSelectedId(note.id);
                       setSidebarOpen(false);
                     }}
-                    className={`w-full rounded-2xl border p-3 text-left transition ${selected?.id === note.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-[#fcfcfb] hover:bg-slate-50"}`}
+                    className={`w-full rounded-2xl border p-3 text-left transition ${
+                      selected?.id === note.id
+                        ? "border-slate-900 dark:border-slate-300 bg-slate-900 dark:bg-slate-600 text-white"
+                        : "border-slate-200 dark:border-slate-600 bg-[#fcfcfb] dark:bg-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate font-medium">{note.project}</p>
-                        <p className={`text-xs ${selected?.id === note.id ? "text-slate-300" : "text-slate-500"}`}>{note.date}</p>
+                        <p className="truncate font-medium">
+                          <HighlightText text={note.project} query={query} />
+                        </p>
+                        <p className={`text-xs ${selected?.id === note.id ? "text-slate-300" : "text-slate-500 dark:text-slate-400"}`}>
+                          <HighlightText text={note.date} query={query} />
+                        </p>
                       </div>
                       <Badge variant={selected?.id === note.id ? "secondary" : "outline"}>{note.updates.filter((u) => u.text.trim()).length}</Badge>
                     </div>
@@ -378,37 +449,37 @@ export default function DailyNoteApplication() {
           {selected && (
             <div className="space-y-4">
               <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-                <Card className="rounded-[28px] border-slate-200 bg-white shadow-sm">
+                <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                   <CardHeader>
                     <CardTitle className="text-lg">Daily Entry</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Date</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
                         <Input type="date" value={selected.date} onChange={(e) => updateSelected({ date: e.target.value })} className="rounded-2xl" />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Project</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Project</label>
                         <Input value={selected.project} onChange={(e) => updateSelected({ project: e.target.value })} className="rounded-2xl" />
                       </div>
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">Summary</label>
+                      <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Summary</label>
                       <Textarea value={selected.summary} onChange={(e) => updateSelected({ summary: e.target.value })} className="min-h-[88px] rounded-2xl" placeholder="Write a short summary of today's work" />
                     </div>
 
                     <div>
                       <div className="mb-3 flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-700">Work Updates</label>
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Work Updates</label>
                         <Button variant="outline" onClick={addUpdateRow} className="rounded-2xl">
                           <Plus className="mr-2 h-4 w-4" /> Add
                         </Button>
                       </div>
                       <div className="space-y-3">
                         {selected.updates.map((item) => (
-                          <div key={item.id} className="flex items-start gap-2 rounded-2xl border border-slate-200 bg-[#fcfcfb] p-3">
+                          <div key={item.id} className="flex items-start gap-2 rounded-2xl border border-slate-200 dark:border-slate-600 bg-[#fcfcfb] dark:bg-slate-700/50 p-3">
                             <Checkbox checked={item.done} onCheckedChange={(checked) => changeUpdate(item.id, { done: !!checked })} />
                             <Input value={item.text} onChange={(e) => changeUpdate(item.id, { text: e.target.value })} className="rounded-2xl" placeholder="Completed API integration for project setup" />
                             <Button variant="ghost" size="icon" onClick={() => removeUpdate(item.id)}>
@@ -421,11 +492,11 @@ export default function DailyNoteApplication() {
 
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Blockers</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Blockers</label>
                         <Textarea value={selected.blockers} onChange={(e) => updateSelected({ blockers: e.target.value })} className="min-h-[96px] rounded-2xl" placeholder="Mention blockers or pending approvals" />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Plan for Tomorrow</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Plan for Tomorrow</label>
                         <Textarea value={selected.tomorrow} onChange={(e) => updateSelected({ tomorrow: e.target.value })} className="min-h-[96px] rounded-2xl" placeholder="What is planned next?" />
                       </div>
                     </div>
@@ -433,42 +504,42 @@ export default function DailyNoteApplication() {
                 </Card>
 
                 <div className="space-y-4">
-                  <Card className="rounded-[28px] border-slate-200 bg-white shadow-sm">
+                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <CalendarDays className="h-5 w-5" /> Today Snapshot
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div className="rounded-2xl bg-[#f7f6f3] p-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">Date</p>
+                      <div className="rounded-2xl bg-[#f7f6f3] dark:bg-slate-700 p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</p>
                         <p className="mt-1 font-medium">{selected.date}</p>
                       </div>
-                      <div className="rounded-2xl bg-[#f7f6f3] p-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">Completed</p>
+                      <div className="rounded-2xl bg-[#f7f6f3] dark:bg-slate-700 p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Completed</p>
                         <p className="mt-1 text-2xl font-semibold">{completedCount}</p>
                       </div>
-                      <div className="rounded-2xl bg-[#f7f6f3] p-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">Project</p>
+                      <div className="rounded-2xl bg-[#f7f6f3] dark:bg-slate-700 p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Project</p>
                         <p className="mt-1 font-medium">{selected.project}</p>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="rounded-[28px] border-slate-200 bg-white shadow-sm">
+                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <Filter className="h-5 w-5" /> Quick Actions
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm text-slate-600">
+                    <CardContent className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                       <Button variant="outline" className="w-full justify-start rounded-2xl" onClick={() => copyText(selected.whatsapp_message || buildWhatsappMessage(selected))}>
                         <MessageSquareText className="mr-2 h-4 w-4" /> Copy WhatsApp Update
                       </Button>
                       <Button variant="outline" className="w-full justify-start rounded-2xl" onClick={() => copyText(weeklyPreview)}>
                         <FileText className="mr-2 h-4 w-4" /> Copy Weekly Report
                       </Button>
-                      <Button variant="outline" className="w-full justify-start rounded-2xl" onClick={deleteSelected}>
+                      <Button variant="outline" className="w-full justify-start rounded-2xl text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => setConfirmOpen(true)}>
                         <Trash2 className="mr-2 h-4 w-4" /> Delete Current Note
                       </Button>
                     </CardContent>
@@ -477,13 +548,13 @@ export default function DailyNoteApplication() {
               </div>
 
               <Tabs defaultValue="whatsapp" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-white">
+                <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-white dark:bg-slate-800">
                   <TabsTrigger value="whatsapp">WhatsApp Update</TabsTrigger>
                   <TabsTrigger value="weekly">Weekly Report</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="whatsapp">
-                  <Card className="rounded-[28px] border-slate-200 bg-white shadow-sm">
+                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <MessageSquareText className="h-5 w-5" /> WhatsApp Update Generator
@@ -500,15 +571,15 @@ export default function DailyNoteApplication() {
                 </TabsContent>
 
                 <TabsContent value="weekly">
-                  <Card className="rounded-[28px] border-slate-200 bg-white shadow-sm">
+                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <FileText className="h-5 w-5" /> Weekly Report Export
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="rounded-2xl bg-[#f7f6f3] p-4 text-sm text-slate-600">
-                        Week Range: <span className="font-medium text-slate-900">{getWeekRange(selected.date)}</span>
+                      <div className="rounded-2xl bg-[#f7f6f3] dark:bg-slate-700 p-4 text-sm text-slate-600 dark:text-slate-400">
+                        Week Range: <span className="font-medium text-slate-900 dark:text-slate-100">{getWeekRange(selected.date)}</span>
                       </div>
                       <Textarea value={weeklyPreview} readOnly className="min-h-[320px] rounded-2xl font-mono text-sm" />
                       <div className="flex flex-wrap gap-2">
@@ -526,7 +597,7 @@ export default function DailyNoteApplication() {
         </div>
 
         <Separator className="my-6" />
-        <p className="pb-4 text-center text-xs text-slate-500">D.Ops — Daily project tracking, WhatsApp updates, and weekly reporting.</p>
+        <p className="pb-4 text-center text-xs text-slate-500 dark:text-slate-500">D.Ops — Daily project tracking, WhatsApp updates, and weekly reporting.</p>
       </div>
     </div>
   );

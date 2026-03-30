@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-background: #f7f6f3;
   --color-foreground: #0f172a;
@@ -30,4 +32,47 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode overrides */
+.dark {
+  --color-background: #0f172a;
+  --color-foreground: #e2e8f0;
+  --color-card: #1e293b;
+  --color-card-foreground: #e2e8f0;
+  --color-popover: #1e293b;
+  --color-popover-foreground: #e2e8f0;
+  --color-primary: #e2e8f0;
+  --color-primary-foreground: #0f172a;
+  --color-secondary: #334155;
+  --color-secondary-foreground: #e2e8f0;
+  --color-muted: #334155;
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #334155;
+  --color-accent-foreground: #e2e8f0;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #f8fafc;
+  --color-border: #334155;
+  --color-input: #334155;
+  --color-ring: #e2e8f0;
+}
+
+.dark body,
+.dark {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/* Search highlight */
+.search-highlight {
+  background-color: #fde68a;
+  color: #0f172a;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.dark .search-highlight {
+  background-color: #d97706;
+  color: #0f172a;
 }
