@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, CheckCircle2, ClipboardList, Download, FileText, Filter, Menu, MessageSquareText, Plus, Search, Trash2 } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardList, Download, FileText, Filter, LogOut, Menu, MessageSquareText, Plus, Search, Trash2 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/context/AuthProvider";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-const createEmptyNote = () => ({
+const createEmptyNote = (userId) => ({
   id: crypto.randomUUID(),
+  user_id: userId,
   date: todayISO(),
   project: "VSM Automation Tool",
   summary: "",
@@ -24,7 +27,7 @@ const createEmptyNote = () => ({
   ],
   blockers: "",
   tomorrow: "",
-  whatsappMessage: "",
+  whatsapp_message: "",
 });
 
 function buildWhatsappMessage(note) {
@@ -98,20 +101,73 @@ function buildWeeklyReport(notes) {
 }
 
 export default function DailyNoteApplication() {
-  const [notes, setNotes] = useState(() => {
-    const saved = localStorage.getItem("daily-note-app-v2");
-    if (saved) return JSON.parse(saved);
-    const initial = createEmptyNote();
-    initial.whatsappMessage = buildWhatsappMessage(initial);
-    return [initial];
-  });
+  const { user, signOut } = useAuth();
+  const [notes, setNotes] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loadingNotes, setLoadingNotes] = useState(true);
+  const saveTimerRef = useRef(null);
 
+  // Load notes from Supabase on mount
   useEffect(() => {
-    localStorage.setItem("daily-note-app-v2", JSON.stringify(notes));
-  }, [notes]);
+    loadNotes();
+  }, []);
+
+  const loadNotes = async () => {
+    setLoadingNotes(true);
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false });
+
+    if (error) {
+      console.error("Error loading notes:", error);
+      setLoadingNotes(false);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      setNotes(data);
+      setSelectedId(data[0].id);
+    } else {
+      // Create initial note for new users
+      const initial = createEmptyNote(user.id);
+      initial.whatsapp_message = buildWhatsappMessage(initial);
+      const { data: inserted, error: insertError } = await supabase
+        .from("notes")
+        .insert(initial)
+        .select()
+        .single();
+
+      if (!insertError && inserted) {
+        setNotes([inserted]);
+        setSelectedId(inserted.id);
+      }
+    }
+    setLoadingNotes(false);
+  };
+
+  // Debounced save to Supabase
+  const saveNote = useCallback(async (noteToSave) => {
+    setSaving(true);
+    const { id, user_id, ...rest } = noteToSave;
+    const { error } = await supabase
+      .from("notes")
+      .update({ ...rest, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) console.error("Save error:", error);
+    setSaving(false);
+  }, [user.id]);
+
+  const debouncedSave = useCallback((noteToSave) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveNote(noteToSave), 600);
+  }, [saveNote]);
 
   useEffect(() => {
     if (!notes.length) return;
@@ -134,25 +190,61 @@ export default function DailyNoteApplication() {
       prev.map((n) => {
         if (n.id !== selected.id) return n;
         const next = { ...n, ...patch };
-        next.whatsappMessage = buildWhatsappMessage(next);
+        next.whatsapp_message = buildWhatsappMessage(next);
+        debouncedSave(next);
         return next;
       })
     );
   };
 
-  const addNewNote = () => {
-    const note = createEmptyNote();
-    note.whatsappMessage = buildWhatsappMessage(note);
-    setNotes((prev) => [note, ...prev]);
-    setSelectedId(note.id);
+  const addNewNote = async () => {
+    const note = createEmptyNote(user.id);
+    note.whatsapp_message = buildWhatsappMessage(note);
+
+    const { data: inserted, error } = await supabase
+      .from("notes")
+      .insert(note)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating note:", error);
+      return;
+    }
+
+    setNotes((prev) => [inserted, ...prev]);
+    setSelectedId(inserted.id);
     setSidebarOpen(false);
   };
 
-  const deleteSelected = () => {
+  const deleteSelected = async () => {
     if (!selected) return;
+
+    const { error } = await supabase
+      .from("notes")
+      .delete()
+      .eq("id", selected.id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error deleting note:", error);
+      return;
+    }
+
     const remaining = notes.filter((n) => n.id !== selected.id);
-    setNotes(remaining.length ? remaining : [{ ...createEmptyNote(), whatsappMessage: buildWhatsappMessage(createEmptyNote()) }]);
-    setSelectedId(remaining[0]?.id || null);
+    if (remaining.length) {
+      setNotes(remaining);
+      setSelectedId(remaining[0].id);
+    } else {
+      // Create a fresh note if all deleted
+      const fresh = createEmptyNote(user.id);
+      fresh.whatsapp_message = buildWhatsappMessage(fresh);
+      const { data: inserted } = await supabase.from("notes").insert(fresh).select().single();
+      if (inserted) {
+        setNotes([inserted]);
+        setSelectedId(inserted.id);
+      }
+    }
   };
 
   const addUpdateRow = () => {
@@ -193,6 +285,20 @@ export default function DailyNoteApplication() {
 
   const completedCount = selected?.updates.filter((u) => u.done).length || 0;
 
+  if (loadingNotes) {
+    return (
+      <div className="min-h-screen bg-[#f7f6f3] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
+            D<span className="text-slate-400">.</span>Ops
+          </h1>
+          <p className="text-sm text-slate-500 mb-4">Loading your notes...</p>
+          <div className="animate-spin h-6 w-6 border-2 border-slate-900 border-t-transparent rounded-full mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f7f6f3] text-slate-900">
       <div className="mx-auto max-w-7xl px-3 py-3 md:px-6 md:py-6">
@@ -207,16 +313,28 @@ export default function DailyNoteApplication() {
                 <Menu className="h-4 w-4" />
               </Button>
               <div>
-                <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Daily Notes Workspace</h1>
-                <p className="mt-1 text-sm text-slate-600">Notion-style daily tracking, mobile-friendly editing, WhatsApp updates, and weekly report export.</p>
+                <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                  D<span className="text-slate-400">.</span>Ops
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">Daily tracking, WhatsApp updates, and weekly report export.</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {saving && (
+                <span className="text-xs text-slate-400 flex items-center gap-1">
+                  <div className="animate-spin h-3 w-3 border border-slate-400 border-t-transparent rounded-full" />
+                  Saving...
+                </span>
+              )}
+              <span className="text-xs text-slate-400 hidden md:block">{user?.email}</span>
               <Button onClick={addNewNote} className="rounded-2xl">
                 <Plus className="mr-2 h-4 w-4" /> New Note
               </Button>
               <Button variant="outline" onClick={exportWeekly} className="rounded-2xl">
                 <Download className="mr-2 h-4 w-4" /> Export Weekly
+              </Button>
+              <Button variant="outline" size="icon" className="rounded-2xl" onClick={signOut} title="Sign out">
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -278,7 +396,7 @@ export default function DailyNoteApplication() {
 
                     <div>
                       <label className="mb-2 block text-sm font-medium text-slate-700">Summary</label>
-                      <Textarea value={selected.summary} onChange={(e) => updateSelected({ summary: e.target.value })} className="min-h-[88px] rounded-2xl" placeholder="Write a short summary of today’s work" />
+                      <Textarea value={selected.summary} onChange={(e) => updateSelected({ summary: e.target.value })} className="min-h-[88px] rounded-2xl" placeholder="Write a short summary of today's work" />
                     </div>
 
                     <div>
@@ -344,7 +462,7 @@ export default function DailyNoteApplication() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm text-slate-600">
-                      <Button variant="outline" className="w-full justify-start rounded-2xl" onClick={() => copyText(selected.whatsappMessage || buildWhatsappMessage(selected))}>
+                      <Button variant="outline" className="w-full justify-start rounded-2xl" onClick={() => copyText(selected.whatsapp_message || buildWhatsappMessage(selected))}>
                         <MessageSquareText className="mr-2 h-4 w-4" /> Copy WhatsApp Update
                       </Button>
                       <Button variant="outline" className="w-full justify-start rounded-2xl" onClick={() => copyText(weeklyPreview)}>
@@ -372,10 +490,10 @@ export default function DailyNoteApplication() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <Textarea value={selected.whatsappMessage || buildWhatsappMessage(selected)} onChange={(e) => updateSelected({ whatsappMessage: e.target.value })} className="min-h-[260px] rounded-2xl font-mono text-sm" />
+                      <Textarea value={selected.whatsapp_message || buildWhatsappMessage(selected)} onChange={(e) => updateSelected({ whatsapp_message: e.target.value })} className="min-h-[260px] rounded-2xl font-mono text-sm" />
                       <div className="flex flex-wrap gap-2">
-                        <Button className="rounded-2xl" onClick={() => copyText(selected.whatsappMessage || buildWhatsappMessage(selected))}>Copy Message</Button>
-                        <Button variant="outline" className="rounded-2xl" onClick={() => updateSelected({ whatsappMessage: buildWhatsappMessage(selected) })}>Regenerate</Button>
+                        <Button className="rounded-2xl" onClick={() => copyText(selected.whatsapp_message || buildWhatsappMessage(selected))}>Copy Message</Button>
+                        <Button variant="outline" className="rounded-2xl" onClick={() => updateSelected({ whatsapp_message: buildWhatsappMessage(selected) })}>Regenerate</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -408,7 +526,7 @@ export default function DailyNoteApplication() {
         </div>
 
         <Separator className="my-6" />
-        <p className="pb-4 text-center text-xs text-slate-500">Built for tracking daily project work, WhatsApp updates, and weekly college/director reporting.</p>
+        <p className="pb-4 text-center text-xs text-slate-500">D.Ops — Daily project tracking, WhatsApp updates, and weekly reporting.</p>
       </div>
     </div>
   );
