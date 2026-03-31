@@ -76,3 +76,10 @@ body {
   background-color: #d97706;
   color: #0f172a;
 }
+
+@media print {
+  body { background: white !important; color: black !important; }
+  .print\:hidden { display: none !important; }
+  .print\:px-0 { padding-left: 0 !important; padding-right: 0 !important; }
+  .print\:py-0 { padding-top: 0 !important; padding-bottom: 0 !important; }
+}

@@ -1,8 +1,10 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthProvider'
 import { ThemeProvider } from './context/ThemeProvider'
 import { ToastProvider } from './components/ui/toast'
 import DailyNoteApplication from './components/DailyNoteApplication'
 import LoginPage from './components/LoginPage'
+import PublicSharePage from './components/PublicSharePage'
 
 function AppContent() {
   const { user, loading } = useAuth()
@@ -25,13 +27,18 @@ function AppContent() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <AppContent />
-        </ToastProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <Routes>
+              <Route path="/share/:token" element={<PublicSharePage />} />
+              <Route path="*" element={<AppContent />} />
+            </Routes>
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   )
 }
 

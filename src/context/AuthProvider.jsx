@@ -39,8 +39,19 @@ export function AuthProvider({ children }) {
     return { error }
   }
 
+  const updateProfile = async (metadata) => {
+    const { data, error } = await supabase.auth.updateUser({ data: metadata })
+    if (!error) setUser(data.user)
+    return { error }
+  }
+
+  const updatePassword = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    return { error }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, updateProfile, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )
