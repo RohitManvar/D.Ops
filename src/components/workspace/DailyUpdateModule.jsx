@@ -428,7 +428,7 @@ function ShortcutsModal({ onClose }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function DailyNoteApplication() {
+export default function DailyUpdateModule() {
   const { user, signOut } = useAuth();
   const { dark, toggleTheme } = useTheme();
   const { addToast } = useToast();
@@ -437,7 +437,6 @@ export default function DailyNoteApplication() {
   const [dateFilter, setDateFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarView, setSidebarView] = useState("list"); // "list" | "calendar"
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
@@ -503,7 +502,7 @@ export default function DailyNoteApplication() {
     const handler = (e) => {
       const isMod = e.ctrlKey || e.metaKey;
       if (!isMod) return;
-      if (e.key === "n") { e.preventDefault(); handleAddNewNote(null); }
+      if (e.key === "n") { e.preventDefault(); addNewNote(null); }
       if (e.key === "s") {
         e.preventDefault();
         const cur = notes.find((n) => n.id === selectedId);
@@ -799,24 +798,8 @@ export default function DailyNoteApplication() {
                 {/* Header row with view toggle */}
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <ClipboardList className="h-5 w-5" /> Notes
+                    <ClipboardList className="h-5 w-5" /> Updates
                   </CardTitle>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setSidebarView("list")}
-                      title="List view"
-                      className={`rounded-xl p-1.5 transition ${sidebarView === "list" ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700"}`}
-                    >
-                      <List className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => setSidebarView("calendar")}
-                      title="Calendar view"
-                      className={`rounded-xl p-1.5 transition ${sidebarView === "calendar" ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700"}`}
-                    >
-                      <LayoutGrid className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
                 </div>
 
                 {/* Jump to date */}
@@ -832,97 +815,15 @@ export default function DailyNoteApplication() {
 
                 {/* Activity heatmap */}
                 <ActivityHeatmap notes={notes} />
-
-                {sidebarView === "list" && (
-                  <>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <Input
-                        ref={searchInputRef}
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search notes (Ctrl+K)"
-                        className="rounded-2xl border-slate-200 dark:border-slate-600 pl-9"
-                      />
-                    </div>
-
-                    {/* Date range filter */}
-                    <div className="flex flex-wrap gap-1">
-                      {DATE_FILTERS.map((f) => (
-                        <button key={f.value} onClick={() => setDateFilter(f.value)}
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
-                            dateFilter === f.value
-                              ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900"
-                              : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                          }`}>
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Tag filter */}
-                    {allUsedTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        <button onClick={() => setTagFilter("")}
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${!tagFilter ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"}`}>
-                          All Tags
-                        </button>
-                        {allUsedTags.map((tag) => (
-                          <button key={tag} onClick={() => setTagFilter(tagFilter === tag ? "" : tag)}
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${tagFilter === tag ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"}`}>
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
               </CardHeader>
 
               <CardContent className="space-y-3 max-h-[55vh] overflow-y-auto">
-                {sidebarView === "calendar" ? (
                   <CalendarSidebar
                     notes={notes}
                     selectedId={selectedId}
                     onSelectNote={(id) => { setSelectedId(id); setSidebarOpen(false); }}
                     onCreateForDate={jumpToDate}
                   />
-                ) : (
-                  <>
-                    {filtered.map((note) => (
-                      <button key={note.id}
-                        onClick={() => { setSelectedId(note.id); setSidebarOpen(false); }}
-                        className={`w-full rounded-2xl border p-3 text-left transition ${
-                          selected?.id === note.id
-                            ? "border-slate-900 dark:border-slate-300 bg-slate-900 dark:bg-slate-600 text-white"
-                            : "border-slate-200 dark:border-slate-600 bg-[#fcfcfb] dark:bg-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700"
-                        }`}>
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1">
-                              {note.pinned && <Pin className="h-3 w-3 shrink-0 text-amber-500" />}
-                              <p className="truncate font-medium"><HighlightText text={note.project} query={query} /></p>
-                            </div>
-                            <p className={`text-xs ${selected?.id === note.id ? "text-slate-300" : "text-slate-500 dark:text-slate-400"}`}>
-                              <HighlightText text={note.date} query={query} />
-                            </p>
-                            {(note.tags || []).length > 0 && (
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {note.tags.map((tag) => <TagPill key={tag} tag={tag} small />)}
-                              </div>
-                            )}
-                          </div>
-                          <Badge variant={selected?.id === note.id ? "secondary" : "outline"}>
-                            {note.updates.filter((u) => u.text.trim()).length}
-                          </Badge>
-                        </div>
-                      </button>
-                    ))}
-                    {filtered.length === 0 && (
-                      <p className="text-center text-sm text-slate-400 py-4">No notes found</p>
-                    )}
-                  </>
-                )}
               </CardContent>
             </Card>
           </aside>

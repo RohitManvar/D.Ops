@@ -24,8 +24,23 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signUp = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
+  const signUp = async (email, password, role = 'executor') => {
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        data: { role }
+      }
+    })
+    
+    if (data?.user && !error) {
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        email: data.user.email,
+        role: role
+      })
+    }
+    
     return { data, error }
   }
 
@@ -50,8 +65,10 @@ export function AuthProvider({ children }) {
     return { error }
   }
 
+  const isReviewer = user?.user_metadata?.role === 'reviewer'
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, updateProfile, updatePassword }}>
+    <AuthContext.Provider value={{ user, loading, isReviewer, signUp, signIn, signOut, updateProfile, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,16 +1,51 @@
-# React + Vite
+# D.Ops Daily Notes & Operations
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A powerful, fast, and feature-rich Daily Operations Workspace built with React 19, Vite, Tailwind CSS, and Supabase. 
 
-Currently, two official plugins are available:
+D.Ops is designed to help you track daily summaries, log blockers, plan for tomorrow, and manage project updates seamlessly.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Features
 
-## React Compiler
+- **Authentication & Security:** Fully protected routing with Supabase authentication.
+- **Rich Markdown Editor:** A distraction-free markdown editing experience for logging summaries, blockers, and tomorrow's plans.
+- **Global Command Palette (Ctrl+K):** Instantly search across your historical notes and navigate the application via keyboard.
+- **Analytics Dashboard:** Visual tracking of your productivity, completed tasks, pending tasks, and top projects using interactive charts.
+- **Progressive Web App (PWA):** Installable on desktop and mobile devices with caching and offline support.
+- **Real-Time Data Sync:** Secure cloud database storage via Supabase with automatic syncing across devices.
+- **Dark Mode Support:** Beautifully designed light and dark modes tailored for developer aesthetics.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Technology Stack
 
-## Expanding the ESLint configuration
+- **Frontend:** React 19, Vite
+- **Styling:** Tailwind CSS, Framer Motion (for micro-animations), Lucide React (for icons)
+- **Editor:** `@uiw/react-md-editor`
+- **Charts:** Recharts
+- **Backend/Auth:** Supabase
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🏃‍♂️ Running Locally
+
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Environment Variables**
+   Create a `.env` file in the root directory and add your Supabase credentials:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+3. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Build for Production**
+   ```bash
+   npm run build
+   ```
+
+## 📝 License
+
+This project is open-source and available under the MIT License.

@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthProvider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,13 +8,25 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 
 export default function LoginPage() {
-  const { signIn, signUp } = useAuth()
+  const { user, signIn, signUp } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState('executor')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      const origin = location.state?.from?.pathname || '/'
+      navigate(origin, { replace: true })
+    }
+  }, [user, navigate, location])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -22,13 +35,14 @@ export default function LoginPage() {
     setLoading(true)
 
     if (isSignUp) {
-      const { error } = await signUp(email, password)
+      const { error } = await signUp(email, password, role)
       if (error) {
         setError(error.message)
       } else {
         setMessage('Check your email for a confirmation link!')
         setEmail('')
         setPassword('')
+        setRole('executor')
       }
     } else {
       const { error } = await signIn(email, password)
@@ -96,6 +110,20 @@ export default function LoginPage() {
                   required
                 />
               </div>
+
+              {isSignUp && (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Role</label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="flex h-10 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                  >
+                    <option value="executor">Executor</option>
+                    <option value="reviewer">Reviewer</option>
+                  </select>
+                </div>
+              )}
 
               {error && (
                 <motion.div
