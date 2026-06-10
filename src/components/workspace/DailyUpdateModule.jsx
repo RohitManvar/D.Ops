@@ -27,7 +27,7 @@ import {
   ArrowLeft, ArrowRightCircle, CalendarDays, ChevronDown, ChevronLeft, ChevronRight,
   ClipboardList, Download, FileText, Filter, GripVertical, Keyboard,
   LayoutGrid, List, LogOut, Menu, MessageSquareText, BarChart,
-  Moon, Pin, PinOff, Plus, Printer, Search, Share2, Sun, Tag, Trash2, User, X, CheckCheck
+  Moon, Pin, PinOff, Plus, Printer, Search, Share2, Sun, Tag, Trash2, User, X, CheckCheck, ListTodo, CheckCircle2, Code
 } from "lucide-react";
 import ProfilePanel from "@/components/ProfilePanel";
 import StatsPanel from "@/components/StatsPanel";
@@ -318,12 +318,22 @@ function CalendarSidebar({ notes, selectedId, onSelectNote, onCreateForDate }) {
   }
 
   const prevMonth = () => {
-    const d = new Date(year, month - 1, 1);
-    setCalMonth(d.toISOString().slice(0, 7));
+    let newMonth = month - 1;
+    let newYear = year;
+    if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    setCalMonth(`${newYear}-${String(newMonth + 1).padStart(2, '0')}`);
   };
   const nextMonth = () => {
-    const d = new Date(year, month + 1, 1);
-    setCalMonth(d.toISOString().slice(0, 7));
+    let newMonth = month + 1;
+    let newYear = year;
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    }
+    setCalMonth(`${newYear}-${String(newMonth + 1).padStart(2, '0')}`);
   };
 
   return (
@@ -434,6 +444,7 @@ export default function DailyUpdateModule() {
   const { addToast } = useToast();
 
   const [query, setQuery] = useState("");
+  const [isImportingGithub, setIsImportingGithub] = useState(false);
   const [dateFilter, setDateFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -611,7 +622,64 @@ export default function DailyUpdateModule() {
     addToast(`Project "${pName}" removed`, "success");
   };
 
+  const importGithubActivity = async () => {
+    const token = localStorage.getItem('github_pat');
+    const username = localStorage.getItem('github_username');
+    if (!token || !username) {
+      addToast("Please connect your GitHub account in the GitHub Work module first.", "error");
+      return;
+    }
 
+    setIsImportingGithub(true);
+    try {
+      const headers = {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      };
+      
+      const qDate = selected.date; // YYYY-MM-DD
+      
+      // 1. Fetch Commits
+      const commitsRes = await fetch(`https://api.github.com/search/commits?q=author:${username}+committer-date:${qDate}`, { headers });
+      const commitsData = await commitsRes.json();
+      
+      // 2. Fetch PRs created/updated on this date
+      const prsRes = await fetch(`https://api.github.com/search/issues?q=is:pr+author:${username}+created:${qDate}`, { headers });
+      const prsData = await prsRes.json();
+
+      const newUpdates = [];
+      
+      if (prsData.items) {
+        prsData.items.forEach(pr => {
+          newUpdates.push({ id: crypto.randomUUID(), text: `Opened PR: ${pr.title} (#${pr.number})`, done: true });
+        });
+      }
+
+      if (commitsData.items) {
+        // Group by message to avoid duplicates from merge commits or multiple branches
+        const uniqueMessages = new Set();
+        commitsData.items.forEach(c => {
+          const msg = c.commit.message.split('\\n')[0];
+          if (!uniqueMessages.has(msg) && !msg.startsWith("Merge pull request")) {
+            uniqueMessages.add(msg);
+            newUpdates.push({ id: crypto.randomUUID(), text: `Commit: ${msg}`, done: true });
+          }
+        });
+      }
+
+      if (newUpdates.length === 0) {
+        addToast(`No GitHub activity found for ${qDate}`, "info");
+      } else {
+        updateSelected({ updates: [...selected.updates, ...newUpdates] });
+        addToast(`Imported ${newUpdates.length} GitHub activities!`, "success");
+      }
+    } catch (error) {
+      console.error(error);
+      addToast("Failed to fetch GitHub activity. Check token permissions.", "error");
+    } finally {
+      setIsImportingGithub(false);
+    }
+  };
 
   const addUpdateRow = () => {
     updateSelected({ updates: [...selected.updates, { id: crypto.randomUUID(), text: "", done: false }] });
@@ -977,9 +1045,16 @@ export default function DailyUpdateModule() {
                           Work Updates
                           <span className="ml-2 text-[10px] text-slate-400 font-normal">drag to reorder</span>
                         </label>
-                        <Button variant="outline" onClick={addUpdateRow} className="rounded-2xl">
-                          <Plus className="mr-2 h-4 w-4" /> Add
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" onClick={importGithubActivity} disabled={isImportingGithub} className="rounded-2xl border-slate-300 dark:border-slate-600">
+                            {isImportingGithub ? <div className="animate-spin h-4 w-4 border-2 border-slate-500 border-t-transparent rounded-full mr-2" /> : <Code className="mr-2 h-4 w-4" />}
+                            <span className="hidden sm:inline">Import GitHub</span>
+                            <span className="sm:hidden">GitHub</span>
+                          </Button>
+                          <Button variant="outline" onClick={addUpdateRow} className="rounded-2xl">
+                            <Plus className="mr-2 h-4 w-4" /> Add
+                          </Button>
+                        </div>
                       </div>
                       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <SortableContext items={selected.updates.map((u) => u.id)} strategy={verticalListSortingStrategy}>

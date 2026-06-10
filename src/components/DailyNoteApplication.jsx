@@ -10,6 +10,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import GlassCard from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -318,12 +319,22 @@ function CalendarSidebar({ notes, selectedId, onSelectNote, onCreateForDate }) {
   }
 
   const prevMonth = () => {
-    const d = new Date(year, month - 1, 1);
-    setCalMonth(d.toISOString().slice(0, 7));
+    let newMonth = month - 1;
+    let newYear = year;
+    if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    setCalMonth(`${newYear}-${String(newMonth + 1).padStart(2, '0')}`);
   };
   const nextMonth = () => {
-    const d = new Date(year, month + 1, 1);
-    setCalMonth(d.toISOString().slice(0, 7));
+    let newMonth = month + 1;
+    let newYear = year;
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    }
+    setCalMonth(`${newYear}-${String(newMonth + 1).padStart(2, '0')}`);
   };
 
   return (
@@ -794,8 +805,8 @@ export default function DailyNoteApplication() {
         <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
           {/* Sidebar */}
           <aside className={`${sidebarOpen ? "block" : "hidden"} lg:block print:hidden`}>
-            <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
-              <CardHeader className="space-y-3">
+            <GlassCard delay={0.1} className="p-0 border-slate-200/50 dark:border-slate-700/50">
+              <CardHeader className="space-y-3 p-6">
                 {/* Header row with view toggle */}
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -924,15 +935,15 @@ export default function DailyNoteApplication() {
                   </>
                 )}
               </CardContent>
-            </Card>
+            </GlassCard>
           </aside>
 
           {/* Main Content */}
           {selected && (
             <div className="space-y-4">
               <div className={`grid gap-4 ${showStats ? "xl:grid-cols-[1fr_0.6fr_0.6fr]" : "xl:grid-cols-[1.3fr_0.7fr]"}`}>
-                <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
-                  <CardHeader>
+                <GlassCard delay={0.2} className="p-0 border-slate-200/50 dark:border-slate-700/50">
+                  <CardHeader className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-lg">Daily Entry</CardTitle>
@@ -1118,45 +1129,44 @@ export default function DailyNoteApplication() {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
+                </GlassCard>
 
                 <div className="space-y-4">
-                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
-                    <CardHeader>
+                  <GlassCard delay={0.3} className="p-0 border-slate-200/50 dark:border-slate-700/50 flex flex-col h-[calc(50%-8px)]">
+                    <CardHeader className="py-4 px-6 flex flex-row items-center justify-between pb-2">
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <CalendarDays className="h-5 w-5" /> Today Snapshot
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div className="rounded-2xl bg-[#f7f6f3] dark:bg-slate-700 p-4">
+                      <div className="rounded-2xl bg-white/50 dark:bg-slate-700/50 p-4">
                         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</p>
                         <p className="mt-1 font-medium">{selected.date}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 p-4">
+                        <div className="rounded-2xl bg-emerald-50/50 dark:bg-emerald-900/10 p-4">
                           <p className="text-xs uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Done</p>
                           <p className="mt-1 text-2xl font-semibold text-emerald-700 dark:text-emerald-300">{completedCount}</p>
                         </div>
-                        <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 p-4">
+                        <div className="rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 p-4">
                           <p className="text-xs uppercase tracking-wide text-amber-600 dark:text-amber-400">Pending</p>
                           <p className="mt-1 text-2xl font-semibold text-amber-700 dark:text-amber-300">{incompleteCount}</p>
                         </div>
                       </div>
-                      <div className="rounded-2xl bg-[#f7f6f3] dark:bg-slate-700 p-4">
+                      <div className="rounded-2xl bg-white/50 dark:bg-slate-700/50 p-4">
                         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Project</p>
                         <p className="mt-1 font-medium">{selected.project}</p>
                       </div>
                     </CardContent>
-                  </Card>
+                  </GlassCard>
 
-                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm print:hidden">
-                    <CardHeader>
+                  <GlassCard delay={0.4} className="p-0 border-slate-200/50 dark:border-slate-700/50 flex flex-col h-[calc(50%-8px)]">
+                    <CardHeader className="py-4 px-6 pb-2">
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <Filter className="h-5 w-5" /> Quick Actions
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
-
                       {incompleteCount > 0 && (
                         <Button variant="outline" className="w-full justify-start rounded-2xl" onClick={carryForwardTasks}>
                           <ArrowRightCircle className="mr-2 h-4 w-4" /> Carry Forward ({incompleteCount})
@@ -1170,7 +1180,7 @@ export default function DailyNoteApplication() {
                         <Trash2 className="mr-2 h-4 w-4" /> Delete Current Note
                       </Button>
                     </CardContent>
-                  </Card>
+                  </GlassCard>
                 </div>
 
                 {showStats && (
@@ -1186,7 +1196,7 @@ export default function DailyNoteApplication() {
                   <TabsTrigger value="weekly">Weekly Report</TabsTrigger>
                 </TabsList>
                 <TabsContent value="whatsapp">
-                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+                  <GlassCard delay={0.5} className="p-0 border-slate-200/50 dark:border-slate-700/50">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <MessageSquareText className="h-5 w-5" /> WhatsApp Update Generator
@@ -1207,10 +1217,10 @@ export default function DailyNoteApplication() {
                         </Button>
                       </div>
                     </CardContent>
-                  </Card>
+                  </GlassCard>
                 </TabsContent>
                 <TabsContent value="weekly">
-                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+                  <GlassCard delay={0.6} className="p-0 border-slate-200/50 dark:border-slate-700/50">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <FileText className="h-5 w-5" /> Weekly Report Export
@@ -1228,7 +1238,7 @@ export default function DailyNoteApplication() {
                         </Button>
                       </div>
                     </CardContent>
-                  </Card>
+                  </GlassCard>
                 </TabsContent>
               </Tabs>
             </div>

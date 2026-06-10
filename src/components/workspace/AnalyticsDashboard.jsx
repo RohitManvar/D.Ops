@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthProvider';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import GlassCard from '@/components/ui/GlassCard';
 import { BarChart as BarChartIcon, TrendingUp, CalendarDays, CheckCircle2, ListTodo, Award, ArrowLeft } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -86,7 +87,7 @@ export default function AnalyticsDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 p-8 md:p-12">
+    <div className="min-h-screen bg-transparent p-8 md:p-12">
       <div className="mx-auto max-w-6xl space-y-8">
         
         {/* Header */}
@@ -123,7 +124,7 @@ export default function AnalyticsDashboard() {
         {/* Top Stats Row */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <Card className="rounded-[24px] border-none shadow-md bg-gradient-to-br from-white to-indigo-50/30 dark:from-slate-800 dark:to-indigo-900/10">
+            <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
@@ -135,10 +136,10 @@ export default function AnalyticsDashboard() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <Card className="rounded-[24px] border-none shadow-md bg-gradient-to-br from-white to-amber-50/30 dark:from-slate-800 dark:to-amber-900/10">
+            <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="rounded-xl bg-amber-100 p-3 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400">
@@ -150,10 +151,10 @@ export default function AnalyticsDashboard() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <Card className="rounded-[24px] border-none shadow-md bg-gradient-to-br from-white to-emerald-50/30 dark:from-slate-800 dark:to-emerald-900/10">
+            <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
@@ -165,10 +166,10 @@ export default function AnalyticsDashboard() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <Card className="rounded-[24px] border-none shadow-md bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-800 dark:to-purple-900/10">
+            <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="rounded-xl bg-purple-100 p-3 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400">
@@ -180,13 +181,13 @@ export default function AnalyticsDashboard() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
         </div>
 
         {/* Main Chart */}
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5, duration: 0.5 }}>
-          <Card className="rounded-[32px] border-slate-200 shadow-xl dark:border-slate-800 dark:bg-slate-900/60 backdrop-blur">
+          <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
             <CardHeader className="px-8 pt-8">
               <CardTitle className="text-xl">Daily Output</CardTitle>
               <CardDescription>Number of tasks completed vs pending per day.</CardDescription>
@@ -219,7 +220,7 @@ export default function AnalyticsDashboard() {
                 </ResponsiveContainer>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </motion.div>
       </div>
     </div>

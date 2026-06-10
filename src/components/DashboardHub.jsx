@@ -19,10 +19,18 @@ import {
   Share2,
   Send,
   ChevronDown,
-  BarChart
+  BarChart,
+  PenLine,
+  Layers,
+  Flag,
+  Kanban,
+  Activity,
+  Rocket,
+  Code
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ProfilePanel from '@/components/ProfilePanel'
+import GlassCard from '@/components/ui/GlassCard'
 
 export default function DashboardHub() {
   const { user, isReviewer, signOut } = useAuth()
@@ -45,27 +53,55 @@ export default function DashboardHub() {
   }, [user, isReviewer])
 
   const executorLinks = [
-    { to: "/daily-notes", title: "Daily Notes", icon: ClipboardList, desc: "Your personal daily tracking and quick updates" },
-    { to: "/daily-update", title: "Daily Update", icon: Send, desc: "Send your official daily status update to the reviewer" },
-    { to: "/backlog", title: "Product Backlog", icon: Inbox, desc: "Manage features, estimates, and priorities" },
-    { to: "/sprints", title: "Sprint Planning", icon: TrendingUp, desc: "Define goals, assign tasks, and plan weeks" },
-    { to: "/kanban", title: "Execution Board", icon: LayoutGrid, desc: "Kanban board for daily execution workflow" },
-    { to: "/analytics", title: "Analytics & Insights", icon: BarChart, desc: "View your productivity trends and project stats" },
+    { 
+      to: "/daily-notes", title: "Daily Notes", icon: PenLine, desc: "Your personal daily tracking and quick updates",
+      color: "from-blue-500 to-cyan-400", bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-blue-500"
+    },
+    { 
+      to: "/daily-update", title: "Daily Update", icon: Rocket, desc: "Send your official daily status update to the reviewer",
+      color: "from-emerald-500 to-teal-400", bg: "bg-emerald-50 dark:bg-emerald-500/10", text: "text-emerald-500"
+    },
+    { 
+      to: "/backlog", title: "Product Backlog", icon: Layers, desc: "Manage features, estimates, and priorities",
+      color: "from-purple-500 to-fuchsia-400", bg: "bg-purple-50 dark:bg-purple-500/10", text: "text-purple-500"
+    },
+    { 
+      to: "/sprints", title: "Sprint Planning", icon: Flag, desc: "Define goals, assign tasks, and plan weeks",
+      color: "from-amber-500 to-orange-400", bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-amber-500"
+    },
+    { 
+      to: "/kanban", title: "Execution Board", icon: Kanban, desc: "Kanban board for daily execution workflow",
+      color: "from-rose-500 to-pink-400", bg: "bg-rose-50 dark:bg-rose-500/10", text: "text-rose-500"
+    },
+    { 
+      to: "/github-work", title: "GitHub Work", icon: Code, desc: "Track pull requests, commits, and code reviews",
+      color: "from-slate-600 to-slate-400", bg: "bg-slate-100 dark:bg-slate-500/10", text: "text-slate-600 dark:text-slate-400"
+    },
+    { 
+      to: "/analytics", title: "Analytics & Insights", icon: Activity, desc: "View your productivity trends and project stats",
+      color: "from-indigo-500 to-violet-400", bg: "bg-indigo-50 dark:bg-indigo-500/10", text: "text-indigo-500"
+    },
   ]
 
   const reviewerLinks = [
-    { to: "/reviewer", title: "Reviewer Dashboard", icon: ShieldCheck, desc: "View progress, sprint reports, and approve plans" },
-    { to: "/backlog", title: "Product Backlog (Read-Only)", icon: Inbox, desc: "Review upcoming features and priorities" },
+    { 
+      to: "/reviewer", title: "Reviewer Dashboard", icon: ShieldCheck, desc: "View progress, sprint reports, and approve plans",
+      color: "from-blue-500 to-cyan-400", bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-blue-500"
+    },
+    { 
+      to: "/backlog", title: "Product Backlog (Read-Only)", icon: Layers, desc: "Review upcoming features and priorities",
+      color: "from-purple-500 to-fuchsia-400", bg: "bg-purple-50 dark:bg-purple-500/10", text: "text-purple-500"
+    },
   ]
 
   const links = isReviewer ? reviewerLinks : executorLinks
 
   return (
-    <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 transition-colors p-8">
+    <div className="min-h-screen bg-transparent p-8">
       <motion.nav
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed top-0 left-0 right-0 z-30 h-14 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200 dark:border-slate-700 shadow-sm print:hidden"
+        className="fixed top-0 left-0 right-0 z-30 h-14 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl border-b border-white/20 dark:border-white/5 shadow-sm print:hidden"
       >
         <div className="mx-auto max-w-7xl h-full px-3 md:px-6 flex items-center justify-between gap-3">
           {/* Left — logo */}
@@ -140,22 +176,28 @@ export default function DashboardHub() {
               transition={{ delay: i * 0.1 }}
             >
               <Link to={item.to} className="block group">
-                <div className="h-full p-6 rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/50 hover:shadow-xl hover:border-blue-500/50 transition-all duration-300 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 scale-y-0 group-hover:scale-y-100 origin-top transition-transform duration-300" />
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 group-hover:text-blue-500 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
-                      <item.icon className="h-8 w-8" />
+                <GlassCard delay={0} noAnimation className={`h-full border-slate-200/50 dark:border-slate-700/50 hover:shadow-2xl hover:shadow-${item.color.split('-')[1]}-500/10 transition-all duration-300 relative overflow-hidden group-hover:-translate-y-1`}>
+                  {/* Subtle hover gradient wash */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-[0.03] dark:group-hover:opacity-[0.05] transition-opacity duration-500`} />
+                  
+                  {/* Left accent line */}
+                  <div className={`absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b ${item.color} scale-y-0 group-hover:scale-y-100 origin-top transition-transform duration-500`} />
+                  
+                  {/* Watermark Icon */}
+                  <item.icon className={`absolute -bottom-6 -right-6 w-32 h-32 ${item.text} opacity-[0.03] dark:opacity-[0.05] -rotate-12 group-hover:rotate-0 group-hover:scale-110 transition-all duration-700 pointer-events-none`} />
+
+                  <div className="flex items-start gap-4 relative z-10">
+                    <div className={`p-4 rounded-[20px] ${item.bg} ${item.text} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                      <item.icon className="h-7 w-7 stroke-[1.5]" />
                     </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                    <div className="pt-1">
+                      <h2 className={`text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2 group-hover:${item.text} transition-colors`}>
                         {item.title}
                       </h2>
-                      <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                        {item.desc}
-                      </p>
+                      <p className="text-slate-500 dark:text-slate-400 leading-relaxed text-sm">{item.desc}</p>
                     </div>
                   </div>
-                </div>
+                </GlassCard>
               </Link>
             </motion.div>
           ))}
