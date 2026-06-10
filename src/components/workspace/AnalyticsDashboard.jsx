@@ -10,6 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, Legend
 } from 'recharts';
+import { containerVariants, itemVariants } from '@/lib/animations';
 
 export default function AnalyticsDashboard() {
   const { user } = useAuth();
@@ -122,104 +123,99 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* Top Stats Row */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
-                    <CheckCircle2 className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Tasks Completed</p>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.totalCompleted}</h3>
-                  </div>
+        <motion.div 
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.div variants={itemVariants} className="h-full">
+            <GlassCard noAnimation className="p-6 border border-white/40 dark:border-white/10 rounded-3xl h-full flex items-center">
+              <div className="flex items-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="h-6 w-6 text-slate-600 dark:text-slate-300 stroke-[1.5]" />
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Tasks Completed</p>
+                  <h3 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{stats.totalCompleted}</h3>
+                </div>
+              </div>
             </GlassCard>
           </motion.div>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-xl bg-amber-100 p-3 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400">
-                    <ListTodo className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Tasks Pending</p>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.totalPending}</h3>
-                  </div>
+          <motion.div variants={itemVariants} className="h-full">
+            <GlassCard noAnimation className="p-6 border border-white/40 dark:border-white/10 rounded-3xl h-full flex items-center">
+              <div className="flex items-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                  <ListTodo className="h-6 w-6 text-slate-600 dark:text-slate-300 stroke-[1.5]" />
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Tasks Pending</p>
+                  <h3 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{stats.totalPending}</h3>
+                </div>
+              </div>
             </GlassCard>
           </motion.div>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
-                    <TrendingUp className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Completion Rate</p>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.completionRate}%</h3>
-                  </div>
+          <motion.div variants={itemVariants} className="h-full">
+            <GlassCard noAnimation className="p-6 border border-white/40 dark:border-white/10 rounded-3xl h-full flex items-center">
+              <div className="flex items-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-6 w-6 text-slate-600 dark:text-slate-300 stroke-[1.5]" />
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Completion Rate</p>
+                  <h3 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{stats.completionRate}%</h3>
+                </div>
+              </div>
             </GlassCard>
           </motion.div>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-xl bg-purple-100 p-3 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400">
-                    <Award className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Top Project</p>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate w-[120px]">{stats.topProject}</h3>
-                  </div>
+          <motion.div variants={itemVariants} className="h-full">
+            <GlassCard noAnimation className="p-6 border border-white/40 dark:border-white/10 rounded-3xl h-full flex items-center">
+              <div className="flex items-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                  <Award className="h-6 w-6 text-slate-600 dark:text-slate-300 stroke-[1.5]" />
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Top Project</p>
+                  <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 truncate w-[120px]">{stats.topProject}</h3>
+                </div>
+              </div>
             </GlassCard>
           </motion.div>
-        </div>
+        </motion.div>
 
         {/* Main Chart */}
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5, duration: 0.5 }}>
-          <GlassCard noAnimation className="p-0 border-slate-200/50 dark:border-slate-700/50">
-            <CardHeader className="px-8 pt-8">
-              <CardTitle className="text-xl">Daily Output</CardTitle>
-              <CardDescription>Number of tasks completed vs pending per day.</CardDescription>
-            </CardHeader>
-            <CardContent className="px-8 pb-8 pt-2">
-              <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                    <XAxis 
-                      dataKey="date" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#64748b', fontSize: 12 }} 
-                      dy={10} 
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#64748b', fontSize: 12 }} 
-                    />
-                    <Tooltip 
-                      cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }} 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    />
-                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                    <Bar dataKey="completed" name="Completed" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                    <Bar dataKey="pending" name="Pending" fill="#fbbf24" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
+          <GlassCard noAnimation className="border border-white/40 dark:border-white/10 p-8 rounded-3xl">
+            <div className="mb-8">
+              <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 tracking-tight">Daily Output</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-light mt-1">Number of tasks completed vs pending per day.</p>
+            </div>
+            <div className="h-[400px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#64748b', fontSize: 12 }} 
+                    dy={10} 
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#64748b', fontSize: 12 }} 
+                  />
+                  <Tooltip 
+                    cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }} 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                  <Bar dataKey="completed" name="Completed" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="pending" name="Pending" fill="#fbbf24" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </GlassCard>
         </motion.div>
       </div>

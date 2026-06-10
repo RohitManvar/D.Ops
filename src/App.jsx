@@ -16,7 +16,10 @@ import AnalyticsDashboard from './components/workspace/AnalyticsDashboard'
 import GithubWork from './components/workspace/GithubWork'
 import CommandPalette from './components/CommandPalette'
 import MeshBackground from './components/ui/MeshBackground'
-
+import FocusMode from './components/workspace/FocusMode'
+import TimelineView from './components/workspace/TimelineView'
+import SettingsHub from './components/workspace/SettingsHub'
+import TeamRoster from './components/reviewer/TeamRoster'
 function App() {
   return (
     <BrowserRouter>
@@ -38,7 +41,11 @@ function App() {
                   <Route path="/github-work" element={<ProtectedRoute><GithubWork /></ProtectedRoute>} />
                   <Route path="/daily-update" element={<ProtectedRoute><DailyUpdateModule /></ProtectedRoute>} />
                   <Route path="/analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
+                  <Route path="/focus" element={<ProtectedRoute><FocusMode /></ProtectedRoute>} />
+                  <Route path="/timeline" element={<ProtectedRoute><TimelineView /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><SettingsHub /></ProtectedRoute>} />
                   <Route path="/reviewer" element={<ProtectedRoute allowedRoles={['reviewer']}><ReviewerDashboard /></ProtectedRoute>} />
+                  <Route path="/team" element={<ProtectedRoute allowedRoles={['reviewer']}><TeamRoster /></ProtectedRoute>} />
 
                   {/* Catch-all route */}
                   <Route path="*" element={<Navigate to="/" replace />} />

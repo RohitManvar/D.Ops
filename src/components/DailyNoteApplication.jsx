@@ -10,11 +10,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import GlassCard from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DebouncedTextarea } from "@/components/ui/debounced-textarea";
+import { containerVariants, itemVariants } from '@/lib/animations';
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { DebouncedInput } from "@/components/ui/debounced-input";
 import { Badge } from "@/components/ui/badge";
@@ -421,16 +421,16 @@ function ShortcutsModal({ onClose }) {
           </h2>
           <button onClick={onClose} className="hover:opacity-70 transition"><X className="h-4 w-4" /></button>
         </div>
-        <div className="space-y-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3">
           {shortcuts.map(({ keys, desc }) => (
-            <div key={keys} className="flex items-center justify-between gap-4">
+            <motion.div key={keys} variants={itemVariants} className="flex items-center justify-between gap-4">
               <span className="text-sm text-slate-600 dark:text-slate-400">{desc}</span>
               <kbd className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-lg font-mono whitespace-nowrap">
                 {keys}
               </kbd>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
         <p className="mt-4 text-xs text-slate-400 text-center">Press Ctrl+/ to close</p>
       </motion.div>
     </motion.div>
@@ -792,6 +792,17 @@ export default function DailyNoteApplication() {
               </AnimatePresence>
             </div>
 
+            <button
+              onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+              className="hidden md:flex items-center gap-2 px-3 h-9 text-sm bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 group"
+            >
+              <Search className="h-4 w-4 text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300" />
+              <span className="tracking-tight mr-2">Search</span>
+              <kbd className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-900 rounded text-slate-400 border border-slate-200 dark:border-slate-700">
+                Ctrl K
+              </kbd>
+            </button>
+
             <Button variant="outline" className="rounded-xl h-9 px-3" onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts (Ctrl+/)">
               <Keyboard className="h-4 w-4" />
             </Button>
@@ -802,10 +813,15 @@ export default function DailyNoteApplication() {
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        <motion.div 
+          className="grid gap-4 lg:grid-cols-[300px_1fr]"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
           {/* Sidebar */}
-          <aside className={`${sidebarOpen ? "block" : "hidden"} lg:block print:hidden`}>
-            <GlassCard delay={0.1} className="p-0 border-slate-200/50 dark:border-slate-700/50">
+          <motion.aside variants={itemVariants} className={`${sidebarOpen ? "block" : "hidden"} lg:block print:hidden`}>
+            <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
               <CardHeader className="space-y-3 p-6">
                 {/* Header row with view toggle */}
                 <div className="flex items-center justify-between">
@@ -935,14 +951,14 @@ export default function DailyNoteApplication() {
                   </>
                 )}
               </CardContent>
-            </GlassCard>
-          </aside>
+            </Card>
+          </motion.aside>
 
           {/* Main Content */}
           {selected && (
-            <div className="space-y-4">
+            <motion.div variants={itemVariants} className="space-y-4">
               <div className={`grid gap-4 ${showStats ? "xl:grid-cols-[1fr_0.6fr_0.6fr]" : "xl:grid-cols-[1.3fr_0.7fr]"}`}>
-                <GlassCard delay={0.2} className="p-0 border-slate-200/50 dark:border-slate-700/50">
+                <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                   <CardHeader className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -1129,10 +1145,10 @@ export default function DailyNoteApplication() {
                       </div>
                     </div>
                   </CardContent>
-                </GlassCard>
+                </Card>
 
                 <div className="space-y-4">
-                  <GlassCard delay={0.3} className="p-0 border-slate-200/50 dark:border-slate-700/50 flex flex-col h-[calc(50%-8px)]">
+                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm flex flex-col h-[calc(50%-8px)]">
                     <CardHeader className="py-4 px-6 flex flex-row items-center justify-between pb-2">
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <CalendarDays className="h-5 w-5" /> Today Snapshot
@@ -1158,9 +1174,9 @@ export default function DailyNoteApplication() {
                         <p className="mt-1 font-medium">{selected.project}</p>
                       </div>
                     </CardContent>
-                  </GlassCard>
+                  </Card>
 
-                  <GlassCard delay={0.4} className="p-0 border-slate-200/50 dark:border-slate-700/50 flex flex-col h-[calc(50%-8px)]">
+                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm flex flex-col h-[calc(50%-8px)]">
                     <CardHeader className="py-4 px-6 pb-2">
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <Filter className="h-5 w-5" /> Quick Actions
@@ -1180,7 +1196,7 @@ export default function DailyNoteApplication() {
                         <Trash2 className="mr-2 h-4 w-4" /> Delete Current Note
                       </Button>
                     </CardContent>
-                  </GlassCard>
+                  </Card>
                 </div>
 
                 {showStats && (
@@ -1196,7 +1212,7 @@ export default function DailyNoteApplication() {
                   <TabsTrigger value="weekly">Weekly Report</TabsTrigger>
                 </TabsList>
                 <TabsContent value="whatsapp">
-                  <GlassCard delay={0.5} className="p-0 border-slate-200/50 dark:border-slate-700/50">
+                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <MessageSquareText className="h-5 w-5" /> WhatsApp Update Generator
@@ -1217,10 +1233,10 @@ export default function DailyNoteApplication() {
                         </Button>
                       </div>
                     </CardContent>
-                  </GlassCard>
+                  </Card>
                 </TabsContent>
                 <TabsContent value="weekly">
-                  <GlassCard delay={0.6} className="p-0 border-slate-200/50 dark:border-slate-700/50">
+                  <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <FileText className="h-5 w-5" /> Weekly Report Export
@@ -1238,12 +1254,12 @@ export default function DailyNoteApplication() {
                         </Button>
                       </div>
                     </CardContent>
-                  </GlassCard>
+                  </Card>
                 </TabsContent>
               </Tabs>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         <Separator className="my-6 print:hidden" />
         <p className="pb-4 text-center text-xs text-slate-500 dark:text-slate-500 print:hidden">

@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import { ArrowLeft, Plus, CheckCircle, Send, CheckCheck, Trash2, Edit2 } from 'lucide-react'
+import ConfirmDialog from '@/components/ui/confirm-dialog'
 
 export default function SprintPlanning() {
   const { user } = useAuth()
@@ -16,6 +17,7 @@ export default function SprintPlanning() {
   const [sprintApprovals, setSprintApprovals] = useState({})
   const [loading, setLoading] = useState(true)
   const [editingSprintId, setEditingSprintId] = useState(null)
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null })
 
   const [newGoal, setNewGoal] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -104,16 +106,22 @@ export default function SprintPlanning() {
     setDeliverables('')
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this sprint?")) {
-      const { error } = await supabase.from('sprints').delete().eq('id', id)
-      if (!error) {
-        setSprints(sprints.filter(s => s.id !== id))
-        addToast("Sprint deleted", "success")
-      } else {
-        addToast(error.message, "error")
-      }
+  const triggerDelete = (id) => {
+    setDeleteDialog({ open: true, id })
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.id) return
+    const id = deleteDialog.id
+    
+    const { error } = await supabase.from('sprints').delete().eq('id', id)
+    if (!error) {
+      setSprints(sprints.filter(s => s.id !== id))
+      addToast("Sprint deleted", "success")
+    } else {
+      addToast(error.message, "error")
     }
+    setDeleteDialog({ open: false, id: null })
   }
 
   const requestApproval = async (sprintId) => {
@@ -257,7 +265,7 @@ export default function SprintPlanning() {
                     }}>
                       <Edit2 className="h-4 w-4 text-slate-400 hover:text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => triggerDelete(s.id)}>
                       <Trash2 className="h-4 w-4 text-slate-400 hover:text-red-500" />
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => requestApproval(s.id)}>
@@ -275,6 +283,14 @@ export default function SprintPlanning() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog 
+        open={deleteDialog.open}
+        title="Delete Sprint"
+        message="Are you sure you want to delete this sprint? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteDialog({ open: false, id: null })}
+      />
     </div>
   )
 }

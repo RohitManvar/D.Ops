@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import { ArrowLeft, Plus, Trash2, CheckCheck, Send, CheckCircle, Edit2 } from 'lucide-react'
+import ConfirmDialog from '@/components/ui/confirm-dialog'
 
 export default function ProductBacklog() {
   const { user } = useAuth()
@@ -16,6 +17,7 @@ export default function ProductBacklog() {
   const [shareStatus, setShareStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editingFeatureId, setEditingFeatureId] = useState(null)
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null })
 
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
@@ -107,14 +109,20 @@ export default function ProductBacklog() {
     setNewEst('')
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this feature?")) {
-      const { error } = await supabase.from('features').delete().eq('id', id)
-      if (!error) {
-        setFeatures(features.filter(f => f.id !== id))
-        addToast("Feature deleted", "success")
-      }
+  const triggerDelete = (id) => {
+    setDeleteDialog({ open: true, id })
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.id) return
+    const id = deleteDialog.id
+    
+    const { error } = await supabase.from('features').delete().eq('id', id)
+    if (!error) {
+      setFeatures(features.filter(f => f.id !== id))
+      addToast("Feature deleted", "success")
     }
+    setDeleteDialog({ open: false, id: null })
   }
 
   return (
@@ -223,7 +231,7 @@ export default function ProductBacklog() {
                     }}>
                       <Edit2 className="h-4 w-4 text-slate-400 hover:text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(f.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => triggerDelete(f.id)}>
                       <Trash2 className="h-4 w-4 text-slate-400 hover:text-red-500" />
                     </Button>
                   </div>
@@ -238,6 +246,14 @@ export default function ProductBacklog() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog 
+        open={deleteDialog.open}
+        title="Delete Feature"
+        message="Are you sure you want to delete this feature? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteDialog({ open: false, id: null })}
+      />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Code, ArrowLeft, Key, ExternalLink, GitPullRequest, MessageSquare, GitCommit, Activity } from 'lucide-react';
+import { containerVariants, itemVariants } from '@/lib/animations';
 import GlassCard from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabaseClient';
@@ -170,28 +171,38 @@ export default function GithubWork() {
           </motion.div>
         ) : (
           /* Dashboard Screen */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <motion.div 
+            className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+          >
             <div className="space-y-8">
               {/* Open PRs */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                <GlassCard className="border-slate-200/50 dark:border-slate-700/50 p-6">
-                  <h2 className="text-xl font-semibold flex items-center gap-2 mb-4 text-slate-900 dark:text-slate-100">
-                    <GitPullRequest className="h-5 w-5 text-emerald-500" /> My Open PRs
+              <motion.div variants={itemVariants} className="h-full">
+                <GlassCard className="border border-white/40 dark:border-white/10 p-8 rounded-3xl h-full flex flex-col">
+                  <h2 className="text-xl font-medium flex items-center gap-3 mb-6 text-slate-900 dark:text-slate-100 tracking-tight">
+                    <div className="h-10 w-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <GitPullRequest className="h-5 w-5 text-slate-600 dark:text-slate-300 stroke-[1.5]" />
+                    </div>
+                    My Open PRs
                   </h2>
                   {loading ? (
-                    <p className="text-slate-500">Loading...</p>
+                    <p className="text-slate-500 font-light">Loading...</p>
                   ) : openPRs.length === 0 ? (
-                    <p className="text-slate-500 text-sm">No open pull requests.</p>
+                    <p className="text-slate-500 text-sm font-light">No open pull requests.</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {openPRs.map(pr => (
-                        <a key={pr.id} href={pr.html_url} target="_blank" rel="noreferrer" className="block p-3 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/50 transition border border-slate-100 dark:border-slate-800">
-                          <div className="flex justify-between items-start">
+                        <a key={pr.id} href={pr.html_url} target="_blank" rel="noreferrer" className="block group p-4 rounded-2xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-colors duration-300">
+                          <div className="flex justify-between items-center gap-4">
                             <div>
-                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{pr.title}</p>
-                              <p className="text-xs text-slate-500 mt-1">{pr.repository_url.split('/').slice(-2).join('/')} #{pr.number}</p>
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-0.5">{pr.title}</p>
+                              <p className="text-xs text-slate-500 font-light">{pr.repository_url.split('/').slice(-2).join('/')} #{pr.number}</p>
                             </div>
-                            <ExternalLink className="h-4 w-4 text-slate-400" />
+                            <div className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 flex shrink-0 items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-slate-900 group-hover:border-transparent transition-all duration-300 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0">
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </div>
                           </div>
                         </a>
                       ))}
@@ -201,25 +212,30 @@ export default function GithubWork() {
               </motion.div>
 
               {/* Review Requests */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <GlassCard className="border-slate-200/50 dark:border-slate-700/50 p-6">
-                  <h2 className="text-xl font-semibold flex items-center gap-2 mb-4 text-slate-900 dark:text-slate-100">
-                    <MessageSquare className="h-5 w-5 text-amber-500" /> Review Requests
+              <motion.div variants={itemVariants} className="h-full">
+                <GlassCard className="border border-white/40 dark:border-white/10 p-8 rounded-3xl h-full flex flex-col">
+                  <h2 className="text-xl font-medium flex items-center gap-3 mb-6 text-slate-900 dark:text-slate-100 tracking-tight">
+                    <div className="h-10 w-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <MessageSquare className="h-5 w-5 text-slate-600 dark:text-slate-300 stroke-[1.5]" />
+                    </div>
+                    Review Requests
                   </h2>
                   {loading ? (
-                    <p className="text-slate-500">Loading...</p>
+                    <p className="text-slate-500 font-light">Loading...</p>
                   ) : reviewRequests.length === 0 ? (
-                    <p className="text-slate-500 text-sm">No pending reviews.</p>
+                    <p className="text-slate-500 text-sm font-light">No pending reviews.</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {reviewRequests.map(pr => (
-                        <a key={pr.id} href={pr.html_url} target="_blank" rel="noreferrer" className="block p-3 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/50 transition border border-slate-100 dark:border-slate-800">
-                          <div className="flex justify-between items-start">
+                        <a key={pr.id} href={pr.html_url} target="_blank" rel="noreferrer" className="block group p-4 rounded-2xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-colors duration-300">
+                          <div className="flex justify-between items-center gap-4">
                             <div>
-                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{pr.title}</p>
-                              <p className="text-xs text-slate-500 mt-1">From: {pr.user.login} • {pr.repository_url.split('/').slice(-2).join('/')}</p>
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-0.5">{pr.title}</p>
+                              <p className="text-xs text-slate-500 font-light">From: {pr.user.login} • {pr.repository_url.split('/').slice(-2).join('/')}</p>
                             </div>
-                            <ExternalLink className="h-4 w-4 text-slate-400" />
+                            <div className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 flex shrink-0 items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-slate-900 group-hover:border-transparent transition-all duration-300 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0">
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </div>
                           </div>
                         </a>
                       ))}
@@ -230,27 +246,30 @@ export default function GithubWork() {
             </div>
 
             {/* Recent Commits */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <GlassCard className="border-slate-200/50 dark:border-slate-700/50 p-6 h-full">
-                <h2 className="text-xl font-semibold flex items-center gap-2 mb-4 text-slate-900 dark:text-slate-100">
-                  <GitCommit className="h-5 w-5 text-blue-500" /> Recent Activity
+            <motion.div variants={itemVariants} className="h-full">
+              <GlassCard className="border border-white/40 dark:border-white/10 p-8 rounded-3xl h-full flex flex-col">
+                <h2 className="text-xl font-medium flex items-center gap-3 mb-6 text-slate-900 dark:text-slate-100 tracking-tight">
+                  <div className="h-10 w-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    <GitCommit className="h-5 w-5 text-slate-600 dark:text-slate-300 stroke-[1.5]" />
+                  </div>
+                  Recent Activity
                 </h2>
                 {loading ? (
-                  <p className="text-slate-500">Loading...</p>
+                  <p className="text-slate-500 font-light">Loading...</p>
                 ) : recentCommits.length === 0 ? (
-                  <p className="text-slate-500 text-sm">No recent activity found.</p>
+                  <p className="text-slate-500 text-sm font-light">No recent activity found.</p>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {recentCommits.map(commit => (
-                      <div key={commit.sha} className="flex gap-3 items-start pb-4 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0">
-                        <div className="mt-1 bg-slate-100 dark:bg-slate-800 rounded-full p-1.5">
-                          <GitCommit className="h-4 w-4 text-slate-500" />
+                      <div key={commit.sha} className="flex gap-4 items-center p-3 rounded-2xl hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
+                        <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                          <GitCommit className="h-4 w-4 text-slate-400" />
                         </div>
-                        <div>
-                          <p className="text-sm text-slate-900 dark:text-slate-200 font-medium">{commit.commit.message.split('\n')[0]}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-slate-500">{commit.repository.full_name}</span>
-                            <span className="text-[10px] text-slate-400 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-200 truncate">{commit.commit.message.split('\n')[0]}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-slate-500 font-light">{commit.repository.full_name}</span>
+                            <span className="text-[10px] text-slate-400 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-medium">
                               {new Date(commit.commit.author.date).toLocaleDateString()}
                             </span>
                           </div>
@@ -263,28 +282,31 @@ export default function GithubWork() {
             </motion.div>
 
             {/* Recent Workflow Runs */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-              <GlassCard className="border-slate-200/50 dark:border-slate-700/50 p-6 h-full lg:col-span-2">
-                <h2 className="text-xl font-semibold flex items-center gap-2 mb-4 text-slate-900 dark:text-slate-100">
-                  <Activity className="h-5 w-5 text-indigo-500" /> Recent Actions Builds
+            <motion.div variants={itemVariants} className="h-full lg:col-span-2">
+              <GlassCard className="border border-white/40 dark:border-white/10 p-8 rounded-3xl h-full flex flex-col">
+                <h2 className="text-xl font-medium flex items-center gap-3 mb-6 text-slate-900 dark:text-slate-100 tracking-tight">
+                  <div className="h-10 w-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    <Activity className="h-5 w-5 text-slate-600 dark:text-slate-300 stroke-[1.5]" />
+                  </div>
+                  Recent Actions Builds
                 </h2>
                 {loading ? (
-                  <p className="text-slate-500">Loading...</p>
+                  <p className="text-slate-500 font-light">Loading...</p>
                 ) : workflowRuns.length === 0 ? (
-                  <p className="text-slate-500 text-sm">No recent workflow runs found.</p>
+                  <p className="text-slate-500 text-sm font-light">No recent workflow runs found.</p>
                 ) : (
-                  <div className="space-y-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {workflowRuns.map(run => (
-                      <a key={run.id} href={run.html_url} target="_blank" rel="noreferrer" className="block p-4 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/50 transition border border-slate-100 dark:border-slate-800">
-                        <div className="flex justify-between items-start">
+                      <a key={run.id} href={run.html_url} target="_blank" rel="noreferrer" className="block group p-5 rounded-2xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-colors duration-300 border border-transparent hover:border-white/40 dark:hover:border-white/10">
+                        <div className="flex justify-between items-center gap-4">
                           <div>
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{run.name}</p>
-                            <p className="text-xs text-slate-500 mt-1">{run.repository.full_name} • {run.head_branch}</p>
+                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">{run.name}</p>
+                            <p className="text-xs text-slate-500 font-light">{run.repository.full_name} • {run.head_branch}</p>
                           </div>
-                          <span className={`px-2 py-1 text-[10px] uppercase font-bold rounded-full ${
+                          <span className={`px-2.5 py-1 text-[10px] uppercase font-semibold rounded-full ${
                             run.conclusion === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                             run.conclusion === 'failure' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
                           }`}>
                             {run.conclusion || run.status}
                           </span>
@@ -295,7 +317,7 @@ export default function GithubWork() {
                 )}
               </GlassCard>
             </motion.div>
-          </div>
+          </motion.div>
         )}
 
       </div>

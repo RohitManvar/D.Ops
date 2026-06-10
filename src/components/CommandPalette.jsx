@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, FileText, Calendar, LayoutDashboard, X, ListTodo } from 'lucide-react';
+import { Search, FileText, Calendar, LayoutDashboard, X, ListTodo, BrainCircuit, CalendarDays, Settings, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthProvider';
 
@@ -31,6 +31,13 @@ export default function CommandPalette() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
+
+  // Listen for custom event from UI buttons
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-command-palette', handleOpen);
+    return () => window.removeEventListener('open-command-palette', handleOpen);
+  }, []);
 
   // Focus input when opened
   useEffect(() => {
@@ -68,6 +75,10 @@ export default function CommandPalette() {
         { type: 'action', title: 'Daily Notes', icon: FileText, action: () => navigate('/daily-notes') },
         { type: 'action', title: 'Daily Update Module', icon: FileText, action: () => navigate('/daily-update') },
         { type: 'action', title: 'Product Backlog', icon: ListTodo, action: () => navigate('/backlog') },
+        { type: 'action', title: 'Focus Mode', icon: BrainCircuit, action: () => navigate('/focus') },
+        { type: 'action', title: 'Timeline View', icon: CalendarDays, action: () => navigate('/timeline') },
+        { type: 'action', title: 'Settings Hub', icon: Settings, action: () => navigate('/settings') },
+        { type: 'action', title: 'Team Roster', icon: Users, action: () => navigate('/team') },
       ];
     }
 

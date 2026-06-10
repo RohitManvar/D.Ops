@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DebouncedTextarea } from "@/components/ui/debounced-textarea";
+import { containerVariants, itemVariants } from '@/lib/animations';
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { DebouncedInput } from "@/components/ui/debounced-input";
 import { Badge } from "@/components/ui/badge";
@@ -848,6 +849,17 @@ export default function DailyUpdateModule() {
               </AnimatePresence>
             </div>
 
+            <button
+              onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+              className="hidden md:flex items-center gap-2 px-3 h-9 text-sm bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 group"
+            >
+              <Search className="h-4 w-4 text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300" />
+              <span className="tracking-tight mr-2">Search</span>
+              <kbd className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-900 rounded text-slate-400 border border-slate-200 dark:border-slate-700">
+                Ctrl K
+              </kbd>
+            </button>
+
             <Button variant="outline" className="rounded-xl h-9 px-3" onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts (Ctrl+/)">
               <Keyboard className="h-4 w-4" />
             </Button>
@@ -858,9 +870,14 @@ export default function DailyUpdateModule() {
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        <motion.div 
+          className="grid gap-4 lg:grid-cols-[300px_1fr]"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
           {/* Sidebar */}
-          <aside className={`${sidebarOpen ? "block" : "hidden"} lg:block print:hidden`}>
+          <motion.aside variants={itemVariants} className={`${sidebarOpen ? "block" : "hidden"} lg:block print:hidden`}>
             <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
               <CardHeader className="space-y-3">
                 {/* Header row with view toggle */}
@@ -894,11 +911,11 @@ export default function DailyUpdateModule() {
                   />
               </CardContent>
             </Card>
-          </aside>
+          </motion.aside>
 
           {/* Main Content */}
           {selected && (
-            <div className="space-y-4">
+            <motion.div variants={itemVariants} className="space-y-4">
               <div className={`grid gap-4 ${showStats ? "xl:grid-cols-[1fr_0.6fr_0.6fr]" : "xl:grid-cols-[1.3fr_0.7fr]"}`}>
                 <Card className="rounded-[28px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                   <CardHeader>
@@ -1207,9 +1224,9 @@ export default function DailyUpdateModule() {
                   </Card>
                 </TabsContent>
               </Tabs>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         <Separator className="my-6 print:hidden" />
         <p className="pb-4 text-center text-xs text-slate-500 dark:text-slate-500 print:hidden">
