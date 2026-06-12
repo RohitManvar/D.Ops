@@ -94,6 +94,9 @@ export default function DashboardHub() {
       to: "/timeline", title: "Timeline View", icon: CalendarDays, desc: "Gantt chart for your sprints and features"
     },
     {
+      to: "/project-gantt", title: "Project Gantt", icon: BarChart, desc: "Detailed Gantt chart for VSM Tool Automation"
+    },
+    {
       to: "/settings", title: "Settings Hub", icon: Settings, desc: "Manage GitHub integrations and preferences"
     },
   ]

@@ -20,6 +20,9 @@ import FocusMode from './components/workspace/FocusMode'
 import TimelineView from './components/workspace/TimelineView'
 import SettingsHub from './components/workspace/SettingsHub'
 import TeamRoster from './components/reviewer/TeamRoster'
+import ProjectGanttChart from './components/workspace/ProjectGanttChart'
+import ProjectList from './components/workspace/ProjectList'
+
 function App() {
   return (
     <BrowserRouter>
@@ -43,6 +46,8 @@ function App() {
                   <Route path="/analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
                   <Route path="/focus" element={<ProtectedRoute><FocusMode /></ProtectedRoute>} />
                   <Route path="/timeline" element={<ProtectedRoute><TimelineView /></ProtectedRoute>} />
+                  <Route path="/project-gantt" element={<ProtectedRoute><ProjectList /></ProtectedRoute>} />
+                  <Route path="/project-gantt/:projectId" element={<ProtectedRoute><ProjectGanttChart /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><SettingsHub /></ProtectedRoute>} />
                   <Route path="/reviewer" element={<ProtectedRoute allowedRoles={['reviewer']}><ReviewerDashboard /></ProtectedRoute>} />
                   <Route path="/team" element={<ProtectedRoute allowedRoles={['reviewer']}><TeamRoster /></ProtectedRoute>} />

@@ -91,7 +91,7 @@ export default function CommandPalette() {
         note.date?.includes(q) || 
         note.project?.toLowerCase().includes(q) || 
         note.summary?.toLowerCase().includes(q) ||
-        note.updates?.some(u => u.text.toLowerCase().includes(q));
+        note.updates?.some(u => u.text?.toLowerCase().includes(q));
         
       if (isMatch) {
         filtered.push({
@@ -118,6 +118,7 @@ export default function CommandPalette() {
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
+      if (!filteredItems.length) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedIndex((prev) => (prev + 1) % filteredItems.length);

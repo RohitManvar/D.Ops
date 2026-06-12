@@ -43,6 +43,7 @@ export function useNotesManager(user, customProjects) {
   const [noteApprovals, setNoteApprovals] = useState({});
 
   const saveTimerRef = useRef(null);
+  const pendingNoteRef = useRef(null);
 
   const isSchemaError = (err) =>
     err?.message?.includes("schema cache") ||
@@ -140,10 +141,26 @@ export function useNotesManager(user, customProjects) {
   }, [user.id, addToast]);
 
   const debouncedSave = useCallback((noteToSave) => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      // A different note still has unsaved edits — flush it before debouncing the new one
+      if (pendingNoteRef.current && pendingNoteRef.current.id !== noteToSave.id) {
+        saveNote(pendingNoteRef.current);
+      }
+    }
+    pendingNoteRef.current = noteToSave;
     saveTimerRef.current = setTimeout(() => {
+      pendingNoteRef.current = null;
       saveNote(noteToSave);
     }, 800);
+  }, [saveNote]);
+
+  // Flush any pending edit on unmount so navigating away doesn't drop the last keystrokes
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (pendingNoteRef.current) saveNote(pendingNoteRef.current);
+    };
   }, [saveNote]);
 
   const updateSelected = useCallback((patch) => {
@@ -152,7 +169,10 @@ export function useNotesManager(user, customProjects) {
       prev.map((n) => {
         if (n.id !== selectedId) return n;
         nextNote = { ...n, ...patch };
-        nextNote.whatsapp_message = buildWhatsappMessage(nextNote);
+        // Don't clobber a manual edit of the WhatsApp message itself
+        if (!("whatsapp_message" in patch)) {
+          nextNote.whatsapp_message = buildWhatsappMessage(nextNote);
+        }
         return nextNote;
       })
     );

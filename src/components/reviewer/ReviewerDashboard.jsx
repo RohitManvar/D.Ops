@@ -1,21 +1,29 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/context/AuthProvider'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, User, FileText, Calendar, Inbox, CheckCheck } from 'lucide-react'
+import { ArrowLeft, User, FileText, Calendar, Inbox, CheckCheck, FolderKanban, Search, Filter, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
 
 export default function ReviewerDashboard() {
   const { user } = useAuth()
   
+  const location = useLocation()
+  
   const [executors, setExecutors] = useState([])
   const [selectedExecutorId, setSelectedExecutorId] = useState(null)
-  const [selectedTab, setSelectedTab] = useState('daily_notes')
+  
+  const initialTab = new URLSearchParams(location.search).get('tab') || 'all'
+  const [selectedTab, setSelectedTab] = useState(initialTab)
   
   const [approvals, setApprovals] = useState([])
   const [features, setFeatures] = useState([])
   const [loading, setLoading] = useState(true)
   const [contentLoading, setContentLoading] = useState(false)
+  
+  const [pendingCounts, setPendingCounts] = useState({})
+  const [searchQuery, setSearchQuery] = useState('')
+  const [dateFilter, setDateFilter] = useState('all')
 
   useEffect(() => {
     fetchExecutors()
@@ -26,42 +34,73 @@ export default function ReviewerDashboard() {
   }, [selectedExecutorId, selectedTab])
 
   const fetchExecutors = async () => {
-    const { data } = await supabase.from('profiles').select('*').eq('role', 'executor')
-    setExecutors(data || [])
-    if (data && data.length > 0) setSelectedExecutorId(data[0].id)
+    const { data: allExecs } = await supabase.from('profiles').select('*').eq('role', 'executor')
+    
+    const { data: reviewerApprovals } = await supabase.from('approvals').select('requester_id, status').eq('reviewer_id', user.id)
+    
+    const pCounts = {}
+    const sharedIds = new Set()
+    
+    ;(reviewerApprovals || []).forEach(a => {
+      sharedIds.add(a.requester_id)
+      if (a.status === 'Pending') {
+        pCounts[a.requester_id] = (pCounts[a.requester_id] || 0) + 1
+      }
+    })
+    
+    setPendingCounts(pCounts)
+    
+    const filteredExecutors = (allExecs || []).filter(e => sharedIds.has(e.id))
+    
+    setExecutors(filteredExecutors)
+    if (filteredExecutors.length > 0) setSelectedExecutorId(filteredExecutors[0].id)
     setLoading(false)
   }
 
   const fetchContent = async () => {
     setContentLoading(true)
     
-    const targetType = selectedTab === 'daily_notes' ? 'daily_update' : selectedTab
-    
-    // Fetch ALL approvals for this target_type (no longer filtering by Pending)
-    let { data: appData } = await supabase
+    let query = supabase
       .from('approvals')
       .select('*')
-      .eq('target_type', targetType)
       .eq('requester_id', selectedExecutorId)
       .eq('reviewer_id', user.id)
       .order('created_at', { ascending: false })
 
+    if (selectedTab !== 'all') {
+      const targetType = selectedTab === 'daily_notes' ? 'daily_update' : selectedTab
+      query = query.eq('target_type', targetType)
+    }
+
+    let { data: appData } = await query
+
     let enrichedApprovals = appData || []
 
     if (enrichedApprovals.length > 0) {
-      // Fetch associated data based on type
-      if (selectedTab === 'daily_notes') {
-        const noteIds = enrichedApprovals.map(a => a.target_id)
+      // Daily Notes
+      const noteIds = enrichedApprovals.filter(a => a.target_type === 'daily_update').map(a => a.target_id)
+      if (noteIds.length > 0) {
         const { data: notesData } = await supabase.from('notes').select('*').in('id', noteIds)
         if (notesData) {
-          enrichedApprovals = enrichedApprovals.map(app => ({ ...app, notes: notesData.find(n => n.id === app.target_id) }))
+          enrichedApprovals = enrichedApprovals.map(app => app.target_type === 'daily_update' ? ({ ...app, notes: notesData.find(n => n.id === app.target_id) }) : app)
         }
       } 
-      else if (selectedTab === 'sprint_plan') {
-        const sprintIds = enrichedApprovals.map(a => a.target_id)
+      
+      // Sprint Plans
+      const sprintIds = enrichedApprovals.filter(a => a.target_type === 'sprint_plan').map(a => a.target_id)
+      if (sprintIds.length > 0) {
         const { data: sprintsData } = await supabase.from('sprints').select('*').in('id', sprintIds)
         if (sprintsData) {
-          enrichedApprovals = enrichedApprovals.map(app => ({ ...app, sprints: sprintsData.find(s => s.id === app.target_id) }))
+          enrichedApprovals = enrichedApprovals.map(app => app.target_type === 'sprint_plan' ? ({ ...app, sprints: sprintsData.find(s => s.id === app.target_id) }) : app)
+        }
+      }
+      
+      // Project Gantt
+      const projectIds = enrichedApprovals.filter(a => a.target_type === 'project_gantt').map(a => a.target_id)
+      if (projectIds.length > 0) {
+        const { data: projData } = await supabase.from('gantt_projects').select('*').in('id', projectIds)
+        if (projData) {
+          enrichedApprovals = enrichedApprovals.map(app => app.target_type === 'project_gantt' ? ({ ...app, project: projData.find(p => p.id === app.target_id) }) : app)
         }
       }
 
@@ -72,6 +111,7 @@ export default function ReviewerDashboard() {
         enrichedApprovals = enrichedApprovals.map(app => 
           pendingIds.includes(app.id) ? { ...app, status: 'Read' } : app
         )
+        setPendingCounts(prev => ({ ...prev, [selectedExecutorId]: Math.max(0, (prev[selectedExecutorId] || 0) - pendingIds.length) }))
       }
     }
       
@@ -91,8 +131,10 @@ export default function ReviewerDashboard() {
   }
 
   const tabs = [
+    { id: 'all', label: 'All Activity', icon: Inbox },
     { id: 'daily_notes', label: 'Daily Notes', icon: FileText },
     { id: 'sprint_plan', label: 'Sprint Planning', icon: Calendar },
+    { id: 'project_gantt', label: 'Gantt Charts', icon: FolderKanban },
     { id: 'product_backlog', label: 'Product Backlog', icon: Inbox },
   ]
 
@@ -103,6 +145,46 @@ export default function ReviewerDashboard() {
   const formatDate = (isoString) => {
     return new Date(isoString).toLocaleDateString()
   }
+
+  const filteredApprovals = approvals.filter(app => {
+    if (dateFilter === '7days') {
+      if (new Date() - new Date(app.created_at) > 7 * 24 * 60 * 60 * 1000) return false
+    } else if (dateFilter === '30days') {
+      if (new Date() - new Date(app.created_at) > 30 * 24 * 60 * 60 * 1000) return false
+    }
+    if (searchQuery) {
+      const lower = searchQuery.toLowerCase()
+      let matches = false
+      if (app.target_type === 'daily_update' && app.notes) {
+        matches = app.notes.summary?.toLowerCase().includes(lower) || app.notes.whatsapp_message?.toLowerCase().includes(lower)
+      } else if (app.target_type === 'sprint_plan' && app.sprints) {
+        matches = app.sprints.goal?.toLowerCase().includes(lower) || app.sprints.deliverables?.toLowerCase().includes(lower)
+      } else if (app.target_type === 'project_gantt' && app.project) {
+        matches = app.project.name?.toLowerCase().includes(lower) || app.project.company?.toLowerCase().includes(lower)
+      }
+      if (!matches) return false
+    }
+    return true
+  }).filter((app, index, self) => index === self.findIndex(t => t.target_id === app.target_id))
+  .sort((a, b) => {
+    if (a.target_type === 'daily_update' && b.target_type === 'daily_update' && a.notes && b.notes) {
+      const diff = new Date(a.notes.date) - new Date(b.notes.date)
+      return diff === 0 ? new Date(a.created_at) - new Date(b.created_at) : diff
+    }
+    if (a.target_type === 'sprint_plan' && b.target_type === 'sprint_plan' && a.sprints && b.sprints) {
+      const diff = new Date(a.sprints.start_date) - new Date(b.sprints.start_date)
+      return diff === 0 ? new Date(a.created_at) - new Date(b.created_at) : diff
+    }
+    return new Date(a.created_at) - new Date(b.created_at)
+  })
+
+  const summaryStats = { daily: 0, sprints: 0, gantt: 0, backlog: 0 }
+  filteredApprovals.forEach(a => {
+    if (a.target_type === 'daily_update') summaryStats.daily++
+    if (a.target_type === 'sprint_plan') summaryStats.sprints++
+    if (a.target_type === 'project_gantt') summaryStats.gantt++
+    if (a.target_type === 'product_backlog') summaryStats.backlog++
+  })
 
   return (
     <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 p-4 md:p-8">
@@ -148,6 +230,11 @@ export default function ReviewerDashboard() {
                     <span className="font-semibold text-slate-800 dark:text-slate-200 truncate capitalize">
                       {exec.email.split('@')[0]}
                     </span>
+                    {pendingCounts[exec.id] > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {pendingCounts[exec.id]}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -179,31 +266,55 @@ export default function ReviewerDashboard() {
                 </div>
               </div>
 
+              {/* Filters & Summary */}
+              {!contentLoading && approvals.length > 0 && (
+                <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 space-y-3 relative z-10">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Search updates..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="relative w-full sm:w-48">
+                      <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <select 
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                      >
+                        <option value="all">All Time</option>
+                        <option value="7days">Last 7 Days</option>
+                        <option value="30days">Last 30 Days</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">Notes: {summaryStats.daily}</span>
+                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">Sprints: {summaryStats.sprints}</span>
+                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">Gantt: {summaryStats.gantt}</span>
+                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">Backlog: {summaryStats.backlog}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Chat Messages / Content */}
               <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 relative z-10 min-h-[500px]">
                 {selectedTab !== 'product_backlog' && (
                   contentLoading ? (
                   <div className="text-center py-12 text-slate-500 bg-white/50 rounded-xl inline-block px-6 mx-auto">Loading messages...</div>
-                ) : approvals.length === 0 ? (
+                ) : filteredApprovals.length === 0 ? (
                   <div className="text-center py-8">
                     <span className="bg-[#FFEEDB] text-[#66503c] text-xs px-4 py-2 rounded-xl shadow-sm inline-block">
-                      No messages shared for this module yet.
+                      No messages match the current filters.
                     </span>
                   </div>
                 ) : 
-                  approvals.filter((app, index, self) => 
-                    index === self.findIndex(t => t.target_id === app.target_id)
-                  ).sort((a, b) => {
-                    if (selectedTab === 'daily_notes' && a.notes && b.notes) {
-                      const diff = new Date(a.notes.date) - new Date(b.notes.date)
-                      return diff === 0 ? new Date(a.created_at) - new Date(b.created_at) : diff
-                    }
-                    if (selectedTab === 'sprint_plan' && a.sprints && b.sprints) {
-                      const diff = new Date(a.sprints.start_date) - new Date(b.sprints.start_date)
-                      return diff === 0 ? new Date(a.created_at) - new Date(b.created_at) : diff
-                    }
-                    return new Date(a.created_at) - new Date(b.created_at)
-                  }).map(app => {
+                  filteredApprovals.map(app => {
                       // Render Chat Bubble
                       return (
                         <div key={app.id} className="flex justify-start">
@@ -253,6 +364,30 @@ export default function ReviewerDashboard() {
                               </div>
                             </>
                           )}
+
+                          {/* Project Gantt Content */}
+                          {app.target_type === 'project_gantt' && app.project ? (
+                            <>
+                              <div className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-2">
+                                Project Gantt Chart Shared
+                              </div>
+                              <div className="text-[14px] font-semibold mb-1 whitespace-pre-wrap">
+                                Project: {app.project.name}
+                              </div>
+                              <div className="text-[13px] text-slate-700 dark:text-slate-300 pb-2">
+                                Client: {app.project.company} | Started: {formatDate(app.project.start_date)}
+                              </div>
+                              <div className="pb-4 pt-2">
+                                <Link to={`/project-gantt/${app.project.id}?from=${selectedTab}`}>
+                                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
+                                    View Full Gantt Chart
+                                  </Button>
+                                </Link>
+                              </div>
+                            </>
+                          ) : app.target_type === 'project_gantt' && !app.project ? (
+                            <div className="text-sm italic text-slate-500 pb-4">Waiting for access to view Gantt chart...</div>
+                          ) : null}
 
                           {/* Meta feedback from executor */}
                           {app.feedback && (

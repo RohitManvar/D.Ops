@@ -22,24 +22,32 @@ export default function FocusMode() {
   const [loading, setLoading] = useState(true);
 
   // Sound references
-  const alarmSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'));
+  const alarmSound = useRef(null);
+  if (!alarmSound.current) {
+    alarmSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+  }
 
   useEffect(() => {
     fetchTasks();
   }, [user]);
 
+  // Deadline-based countdown: browsers throttle intervals in background tabs,
+  // so we compute the remaining time from a fixed end timestamp instead of
+  // decrementing once per tick.
   useEffect(() => {
-    let interval = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(time => time - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && isActive) {
-      handleComplete();
-      clearInterval(interval);
-    }
+    if (!isActive) return;
+    const endTime = Date.now() + timeLeft * 1000;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining === 0) {
+        clearInterval(interval);
+        handleComplete();
+      }
+    }, 500);
     return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]);
 
   const fetchTasks = async () => {
     if (!user) return;
@@ -77,7 +85,7 @@ export default function FocusMode() {
     try {
       const { error } = await supabase.from('pomodoro_sessions').insert({
         user_id: user.id,
-        task_id: selectedTaskId || null,
+        task_id: selectedTaskId && selectedTaskId !== 'adhoc' ? selectedTaskId : null,
         duration_minutes: 25,
       });
 

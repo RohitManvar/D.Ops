@@ -39,9 +39,11 @@ export default function SharePanel({ open, onClose, notes }) {
   const [sharingDirectly, setSharingDirectly] = useState(false);
 
   // New state for module selection
-  const [targetModule, setTargetModule] = useState("daily_notes"); // "daily_notes" | "product_backlog" | "sprint_plan"
+  const [targetModule, setTargetModule] = useState("daily_notes"); // "daily_notes" | "product_backlog" | "sprint_plan" | "project_gantt"
   const [sprints, setSprints] = useState([]);
   const [selectedSprint, setSelectedSprint] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState("");
 
   // Fetch reviewers and sprints
   useMemo(() => {
@@ -58,6 +60,13 @@ export default function SharePanel({ open, onClose, notes }) {
         if (data && data.length > 0) {
           setSprints(data);
           setSelectedSprint(data[0].id);
+        }
+      });
+      // Gantt Projects
+      supabase.from('gantt_projects').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).then(({ data }) => {
+        if (data && data.length > 0) {
+          setProjects(data);
+          setSelectedProject(data[0].id);
         }
       });
     }
@@ -158,6 +167,13 @@ export default function SharePanel({ open, onClose, notes }) {
         return;
       }
       targetId = selectedSprint;
+    } else if (targetModule === "project_gantt") {
+      if (!selectedProject) {
+        addToast("No project selected", "error");
+        setSharingDirectly(false);
+        return;
+      }
+      targetId = selectedProject;
     }
 
     const { error } = await supabase.from('approvals').insert({
@@ -237,7 +253,7 @@ export default function SharePanel({ open, onClose, notes }) {
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 block">Module to Share</label>
                 <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl overflow-x-auto hide-scrollbar">
-                  {['daily_notes', 'product_backlog', 'sprint_plan'].map(mod => (
+                  {['daily_notes', 'product_backlog', 'sprint_plan', 'project_gantt'].map(mod => (
                     <button
                       key={mod}
                       onClick={() => setTargetModule(mod)}
@@ -247,7 +263,7 @@ export default function SharePanel({ open, onClose, notes }) {
                           : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                       }`}
                     >
-                      {mod === 'daily_notes' ? 'Daily Notes' : mod === 'product_backlog' ? 'Product Backlog' : 'Sprint Planning'}
+                      {mod === 'daily_notes' ? 'Daily Notes' : mod === 'product_backlog' ? 'Product Backlog' : mod === 'sprint_plan' ? 'Sprint Planning' : 'Project Gantt'}
                     </button>
                   ))}
                 </div>
@@ -337,6 +353,25 @@ export default function SharePanel({ open, onClose, notes }) {
                 </div>
               )}
 
+              {targetModule === "project_gantt" && (
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">Select Project Gantt Chart</label>
+                  {projects.length === 0 ? (
+                    <p className="text-sm text-slate-500">No projects available.</p>
+                  ) : (
+                    <select
+                      value={selectedProject}
+                      onChange={(e) => setSelectedProject(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-300"
+                    >
+                      {projects.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
               {/* Custom message */}
               <div>
                 <button
@@ -406,7 +441,8 @@ export default function SharePanel({ open, onClose, notes }) {
                         sharingDirectly || 
                         !selectedReviewer ||
                         (targetModule === 'daily_notes' && previewNotes.length === 0) ||
-                        (targetModule === 'sprint_plan' && !selectedSprint)
+                        (targetModule === 'sprint_plan' && !selectedSprint) ||
+                        (targetModule === 'project_gantt' && !selectedProject)
                       }
                       className="w-full rounded-2xl h-11 bg-blue-600 hover:bg-blue-700 text-white"
                     >

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
@@ -396,7 +396,7 @@ function ShortcutsModal({ onClose }) {
   const shortcuts = [
     { keys: "Ctrl + N", desc: "Create new note" },
     { keys: "Ctrl + S", desc: "Force save current note" },
-    { keys: "Ctrl + K", desc: "Focus search bar" },
+    { keys: "Ctrl + K", desc: "Open command palette" },
     { keys: "Ctrl + P", desc: "Print / Save as PDF" },
     { keys: "Ctrl + /", desc: "Toggle this shortcuts panel" },
   ];
@@ -440,7 +440,7 @@ function ShortcutsModal({ onClose }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function DailyNoteApplication() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateProfile } = useAuth();
   const { dark, toggleTheme } = useTheme();
   const { addToast } = useToast();
 
@@ -470,6 +470,7 @@ export default function DailyNoteApplication() {
   const [newProjectName, setNewProjectName] = useState("");
 
   const searchInputRef = useRef(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Initialize the notes manager
   const {
@@ -508,6 +509,15 @@ export default function DailyNoteApplication() {
     if (!notes.length) return;
     if (!selectedId || !notes.find((n) => n.id === selectedId)) setSelectedId(notes[0].id);
   }, [notes, selectedId]);
+
+  // Open a specific date when arriving via /daily-notes?date=YYYY-MM-DD (e.g. from the command palette)
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    if (!dateParam || loadingNotes) return;
+    jumpToDate(dateParam);
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingNotes, searchParams]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -708,22 +718,13 @@ export default function DailyNoteApplication() {
         open={confirmOpen}
         title="Delete Note"
         message={`Delete the note for ${selected?.date}? This action cannot be undone.`}
-        onConfirm={deleteSelected}
+        onConfirm={handleDeleteSelected}
         onCancel={() => setConfirmOpen(false)}
       />
 
       <AnimatePresence>
         {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
       </AnimatePresence>
-
-      <ProfilePanel
-        open={showProfile}
-        onClose={() => setShowProfile(false)}
-        notes={notes}
-      />
-
-
-
 
       <ProfilePanel
         open={showProfile}
