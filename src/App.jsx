@@ -16,8 +16,8 @@ import AnalyticsDashboard from './components/workspace/AnalyticsDashboard'
 import GithubWork from './components/workspace/GithubWork'
 import CommandPalette from './components/CommandPalette'
 import MeshBackground from './components/ui/MeshBackground'
-import FocusMode from './components/workspace/FocusMode'
-import TimelineView from './components/workspace/TimelineView'
+
+
 import SettingsHub from './components/workspace/SettingsHub'
 import TeamRoster from './components/reviewer/TeamRoster'
 import ProjectGanttChart from './components/workspace/ProjectGanttChart'
@@ -44,8 +44,8 @@ function App() {
                   <Route path="/github-work" element={<ProtectedRoute><GithubWork /></ProtectedRoute>} />
                   <Route path="/daily-update" element={<ProtectedRoute><DailyUpdateModule /></ProtectedRoute>} />
                   <Route path="/analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
-                  <Route path="/focus" element={<ProtectedRoute><FocusMode /></ProtectedRoute>} />
-                  <Route path="/timeline" element={<ProtectedRoute><TimelineView /></ProtectedRoute>} />
+
+
                   <Route path="/project-gantt" element={<ProtectedRoute><ProjectList /></ProtectedRoute>} />
                   <Route path="/project-gantt/:projectId" element={<ProtectedRoute><ProjectGanttChart /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><SettingsHub /></ProtectedRoute>} />

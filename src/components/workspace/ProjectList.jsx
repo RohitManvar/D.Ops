@@ -21,7 +21,7 @@ export default function ProjectList() {
 
   useEffect(() => {
     if (user) fetchProjects();
-  }, [user]);
+  }, [user?.id]);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -108,7 +108,7 @@ export default function ProjectList() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-4 md:p-8 transition-colors duration-300 font-sans">
+    <div className="min-h-screen bg-transparent text-slate-900 dark:text-slate-100 p-4 md:p-8 transition-colors duration-300 font-sans">
       <div className="max-w-5xl mx-auto pt-10">
         <div className="mb-10 flex items-start justify-between">
           <div>

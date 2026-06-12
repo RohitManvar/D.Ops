@@ -235,7 +235,7 @@ export default function SharePanel({ open, onClose, notes }) {
           <motion.div
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            className="fixed right-0 top-0 z-50 h-full w-full max-w-sm bg-white dark:bg-slate-800 shadow-2xl overflow-y-auto"
+            className="fixed right-0 top-0 z-50 h-full w-full max-w-[500px] bg-white dark:bg-slate-800 shadow-2xl overflow-y-auto"
           >
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur border-b border-slate-100 dark:border-slate-700">

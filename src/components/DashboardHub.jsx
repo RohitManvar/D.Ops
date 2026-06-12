@@ -63,7 +63,7 @@ export default function DashboardHub() {
           if (data) setNotes(data)
         })
     }
-  }, [user, isReviewer])
+  }, [user?.id, isReviewer])
 
   const executorLinks = [
     { 
@@ -86,12 +86,6 @@ export default function DashboardHub() {
     },
     { 
       to: "/analytics", title: "Analytics & Insights", icon: Activity, desc: "View your productivity trends and project stats"
-    },
-    {
-      to: "/focus", title: "Focus Mode", icon: BrainCircuit, desc: "Pomodoro timer for deep work"
-    },
-    {
-      to: "/timeline", title: "Timeline View", icon: CalendarDays, desc: "Gantt chart for your sprints and features"
     },
     {
       to: "/project-gantt", title: "Project Gantt", icon: BarChart, desc: "Detailed Gantt chart for VSM Tool Automation"

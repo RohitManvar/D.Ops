@@ -75,8 +75,8 @@ export default function CommandPalette() {
         { type: 'action', title: 'Daily Notes', icon: FileText, action: () => navigate('/daily-notes') },
         { type: 'action', title: 'Daily Update Module', icon: FileText, action: () => navigate('/daily-update') },
         { type: 'action', title: 'Product Backlog', icon: ListTodo, action: () => navigate('/backlog') },
-        { type: 'action', title: 'Focus Mode', icon: BrainCircuit, action: () => navigate('/focus') },
-        { type: 'action', title: 'Timeline View', icon: CalendarDays, action: () => navigate('/timeline') },
+
+
         { type: 'action', title: 'Settings Hub', icon: Settings, action: () => navigate('/settings') },
         { type: 'action', title: 'Team Roster', icon: Users, action: () => navigate('/team') },
       ];

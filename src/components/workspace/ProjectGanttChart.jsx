@@ -7,6 +7,7 @@ import { containerVariants, itemVariants } from '@/lib/animations';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/components/ui/toast';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 
 const categoryColors = [
   { color: "bg-purple-200", barColor: "bg-purple-300", textColor: "text-purple-900" },
@@ -32,12 +33,14 @@ export default function ProjectGanttChart() {
   const [editingTask, setEditingTask] = useState(null); // { catId, taskId }
   const [editingCat, setEditingCat] = useState(null); // catId
   const [editForm, setEditForm] = useState({});
+  const [dragInfo, setDragInfo] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, type: null, catId: null, taskId: null, title: '', message: '' });
 
   useEffect(() => {
     if (user && projectId) {
       fetchData();
     }
-  }, [user, projectId]);
+  }, [user?.id, projectId]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -80,7 +83,7 @@ export default function ProjectGanttChart() {
     }
   };
 
-  const { minDate, maxDate, totalWeeks, weeks, daysInWeek, dayLetters } = useMemo(() => {
+  const { minDate, maxDate, totalWeeks, weeks, daysInWeek, dayLetters, actualDurationStr } = useMemo(() => {
     let minD = new Date();
     if (projectInfo.start_date) {
       minD = new Date(projectInfo.start_date);
@@ -126,10 +129,24 @@ export default function ProjectGanttChart() {
       curD.setDate(curD.getDate() + 7);
     }
 
+    const actualDays = Math.floor((maxD - minD) / (1000 * 60 * 60 * 24)) + 1;
+    let actualDurationStr = "0 Days";
+    if (hasDates) {
+      const w = Math.floor(actualDays / 7);
+      const d = actualDays % 7;
+      const parts = [];
+      if (w > 0) parts.push(`${w} Week${w > 1 ? 's' : ''}`);
+      if (d > 0) parts.push(`${d} Day${d > 1 ? 's' : ''}`);
+      if (parts.length > 0) {
+        actualDurationStr = parts.join(' ');
+      }
+    }
+
     return { 
       minDate: projectStart, 
       maxDate: endPad, 
       totalWeeks: tWeeks, 
+      actualDurationStr,
       weeks: w,
       daysInWeek: 7,
       dayLetters: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -168,9 +185,17 @@ export default function ProjectGanttChart() {
   };
 
   const handleSaveTask = (catId) => {
+    let finalProgress = String(editForm.progress || '0%').trim();
+    if (!finalProgress.endsWith('%')) {
+      const val = parseInt(finalProgress, 10);
+      finalProgress = isNaN(val) ? '0%' : `${val}%`;
+    }
+
+    const finalTask = { ...editForm, progress: finalProgress };
+
     saveData(data.map(c => {
       if (c.id === catId) {
-        return { ...c, tasks: c.tasks.map(t => t.id === editForm.id ? editForm : t) };
+        return { ...c, tasks: c.tasks.map(t => t.id === finalTask.id ? finalTask : t) };
       }
       return c;
     }));
@@ -178,14 +203,29 @@ export default function ProjectGanttChart() {
   };
 
   const handleDeleteTask = (catId, taskId) => {
-    if(!confirm("Are you sure you want to delete this task?")) return;
-    saveData(data.map(c => {
-      if (c.id === catId) {
-        return { ...c, tasks: c.tasks.filter(t => t.id !== taskId) };
-      }
-      return c;
-    }));
-    setEditingTask(null);
+    setDeleteDialog({
+      open: true,
+      type: 'task',
+      catId,
+      taskId,
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? This action cannot be undone.'
+    });
+  };
+
+  const confirmDelete = () => {
+    if (deleteDialog.type === 'task') {
+      saveData(data.map(c => {
+        if (c.id === deleteDialog.catId) {
+          return { ...c, tasks: c.tasks.filter(t => t.id !== deleteDialog.taskId) };
+        }
+        return c;
+      }));
+      setEditingTask(null);
+    } else if (deleteDialog.type === 'category') {
+      saveData(data.filter(c => c.id !== deleteDialog.catId));
+    }
+    setDeleteDialog({ open: false, type: null, catId: null, taskId: null, title: '', message: '' });
   };
 
   const handleAddTask = (catId) => {
@@ -221,8 +261,14 @@ export default function ProjectGanttChart() {
   };
 
   const handleDeleteCategory = (catId) => {
-    if(!confirm("Are you sure you want to delete this entire category and its tasks?")) return;
-    saveData(data.filter(c => c.id !== catId));
+    setDeleteDialog({
+      open: true,
+      type: 'category',
+      catId,
+      taskId: null,
+      title: 'Delete Phase',
+      message: 'Are you sure you want to delete this entire phase and all its tasks? This action cannot be undone.'
+    });
   };
 
   const handleSaveCategory = (catId) => {
@@ -230,12 +276,109 @@ export default function ProjectGanttChart() {
     setEditingCat(null);
   };
 
+  const handleDragStartNative = (e, info) => {
+    if (isReadOnly) return;
+    setDragInfo(info);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', info.type);
+    setTimeout(() => {
+      e.target.classList.add('opacity-50');
+    }, 0);
+  };
+
+  const handleDragEndNative = (e) => {
+    e.target.classList.remove('opacity-50');
+    setDragInfo(null);
+  };
+
+  const handleDragOverNative = (e) => {
+    e.preventDefault(); 
+  };
+
+  const handleDropNative = (e, targetInfo) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dragInfo || isReadOnly) {
+      setDragInfo(null);
+      return;
+    }
+
+    let newData = JSON.parse(JSON.stringify(data)); 
+
+    if (dragInfo.type === 'category' && targetInfo.type === 'category') {
+      const [movedCat] = newData.splice(dragInfo.index, 1);
+      newData.splice(targetInfo.index, 0, movedCat);
+    } 
+    else if (dragInfo.type === 'task' && targetInfo.type === 'task') {
+      const sourceCat = newData[dragInfo.catIndex];
+      const [movedTask] = sourceCat.tasks.splice(dragInfo.taskIndex, 1);
+      const targetCat = newData[targetInfo.catIndex];
+      targetCat.tasks.splice(targetInfo.taskIndex, 0, movedTask);
+    }
+    else if (dragInfo.type === 'task' && targetInfo.type === 'category') {
+      const sourceCat = newData[dragInfo.catIndex];
+      const [movedTask] = sourceCat.tasks.splice(dragInfo.taskIndex, 1);
+      const targetCat = newData[targetInfo.index];
+      targetCat.tasks.push(movedTask);
+    }
+
+    // --- AUTO-SCHEDULE WATERFALL ---
+    const formatLocalDate = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+
+    let currentDate = new Date();
+    if (projectInfo.start_date) {
+      const [y, m, d] = projectInfo.start_date.split('-');
+      currentDate = new Date(y, m - 1, d);
+    } else {
+      currentDate.setHours(0,0,0,0);
+    }
+
+    newData.forEach(cat => {
+      cat.tasks.forEach(task => {
+        let oldStartD = new Date();
+        if (task.start) {
+          const [sy, sm, sd] = task.start.split('-');
+          oldStartD = new Date(sy, sm - 1, sd);
+        }
+        
+        let oldEndD = new Date();
+        if (task.end) {
+          const [ey, em, ed] = task.end.split('-');
+          oldEndD = new Date(ey, em - 1, ed);
+        }
+        
+        let durationDays = 1;
+        if (!isNaN(oldStartD) && !isNaN(oldEndD)) {
+          durationDays = Math.floor((oldEndD - oldStartD) / (1000 * 60 * 60 * 24)) + 1;
+          if (durationDays < 1) durationDays = 1;
+        }
+
+        task.start = formatLocalDate(currentDate);
+
+        const newEndD = new Date(currentDate);
+        newEndD.setDate(newEndD.getDate() + durationDays - 1);
+        task.end = formatLocalDate(newEndD);
+
+        currentDate = new Date(newEndD);
+        currentDate.setDate(currentDate.getDate() + 1);
+      });
+    });
+
+    saveData(newData);
+    setDragInfo(null);
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-4 md:p-8 transition-colors duration-300 font-sans">
+    <div className="min-h-screen bg-transparent text-slate-900 dark:text-slate-100 p-4 md:p-8 transition-colors duration-300 font-sans">
       <div className="max-w-[1600px] mx-auto">
         <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -249,7 +392,7 @@ export default function ProjectGanttChart() {
           </div>
           <div className="flex flex-col gap-1 text-sm font-semibold text-slate-600 dark:text-slate-300 text-right">
             <p>Start: {minDate.toLocaleDateString()}</p>
-            <p>{totalWeeks} Weeks Total</p>
+            <p>{actualDurationStr} Total</p>
           </div>
         </div>
 
@@ -263,7 +406,7 @@ export default function ProjectGanttChart() {
             {/* LEFT PANE: Task Table */}
             <div className="w-[500px] shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
               {/* Header */}
-              <div className="h-[60px] flex items-end border-b border-slate-200 dark:border-slate-700 pb-2 font-bold px-2">
+              <div className="h-[60px] flex items-end border-b border-slate-200 dark:border-slate-700 pb-2 font-bold px-2 sticky top-0 z-30 bg-white dark:bg-slate-900">
                 <div className="w-[50%] pl-2">TASK</div>
                 <div className="w-[12%] text-center">PROG</div>
                 <div className="w-[15%] text-center">START</div>
@@ -273,10 +416,17 @@ export default function ProjectGanttChart() {
 
               {/* Rows */}
               <div className="flex flex-col">
-                {data.map((cat) => (
+                {data.map((cat, catIndex) => (
                   <div key={cat.id}>
                     {/* Category Header */}
-                    <div className={`${cat.color} ${cat.textColor} font-bold p-2 min-h-[36px] flex items-center justify-between border-b border-slate-200/50 dark:border-slate-700/50 group`}>
+                    <div 
+                      draggable={!isReadOnly}
+                      onDragStart={(e) => handleDragStartNative(e, { type: 'category', index: catIndex })}
+                      onDragEnd={handleDragEndNative}
+                      onDragOver={handleDragOverNative}
+                      onDrop={(e) => handleDropNative(e, { type: 'category', index: catIndex })}
+                      className={`${cat.color} ${cat.textColor} font-bold p-2 min-h-[36px] flex items-center justify-between border-b border-slate-200/50 dark:border-slate-700/50 group ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                    >
                       {editingCat === cat.id ? (
                         <div className="flex items-center gap-2 w-full">
                           <input 
@@ -303,13 +453,24 @@ export default function ProjectGanttChart() {
                     </div>
 
                     {/* Tasks */}
-                    {cat.tasks.map((task) => {
+                    {cat.tasks.map((task, taskIndex) => {
                       const isEditing = editingTask?.taskId === task.id;
                       
                       return (
-                        <div key={task.id} className="flex items-center min-h-[36px] border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                        <div 
+                          key={task.id} 
+                          draggable={!isReadOnly && !isEditing}
+                          onDragStart={(e) => handleDragStartNative(e, { type: 'task', catIndex, taskIndex })}
+                          onDragEnd={handleDragEndNative}
+                          onDragOver={handleDragOverNative}
+                          onDrop={(e) => handleDropNative(e, { type: 'task', catIndex, taskIndex })}
+                          className={`flex items-center min-h-[36px] border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${!isReadOnly && !isEditing ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                        >
                           {isEditing ? (
-                            <div className="flex w-full px-2 gap-1 items-center bg-blue-50/50 dark:bg-blue-900/10 py-1">
+                            <div 
+                              className="flex w-full px-2 gap-1 items-center bg-blue-50/50 dark:bg-blue-900/10 py-1"
+                              onKeyDown={e => e.key === 'Enter' && handleSaveTask(cat.id)}
+                            >
                               <div className="w-[50%]">
                                 <input className="w-full text-xs px-2 py-1 border rounded bg-white dark:bg-slate-800 dark:border-slate-600" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
                               </div>
@@ -346,7 +507,11 @@ export default function ProjectGanttChart() {
                     })}
                     {/* Add Task Button */}
                     {!isReadOnly && (
-                      <div className="h-[30px] flex items-center pl-4 border-b border-slate-100 dark:border-slate-800">
+                      <div 
+                        className="h-[30px] flex items-center pl-4 border-b border-slate-100 dark:border-slate-800"
+                        onDragOver={handleDragOverNative}
+                        onDrop={(e) => handleDropNative(e, { type: 'category', index: catIndex })}
+                      >
                         <button onClick={() => handleAddTask(cat.id)} className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex items-center gap-1">
                           <Plus className="w-3 h-3" /> Add Task
                         </button>
@@ -415,18 +580,53 @@ export default function ProjectGanttChart() {
                       {/* Task rows */}
                       {cat.tasks.map((task) => {
                         const style = getBarStyles(task.start, task.end);
+                        const startD = new Date(task.start);
+                        const endD = new Date(task.end);
+                        let durationText = "";
+                        if (!isNaN(startD) && !isNaN(endD)) {
+                          const diff = Math.floor((endD - startD) / (1000 * 60 * 60 * 24)) + 1;
+                          if (diff > 0) {
+                            const w = Math.floor(diff / 7);
+                            const d = diff % 7;
+                            const wStr = w > 0 ? `${w} week${w > 1 ? 's' : ''}` : '';
+                            const dStr = d > 0 ? `${d} day${d > 1 ? 's' : ''}` : '';
+                            durationText = `\nDuration: ${wStr}${w > 0 && d > 0 ? ', ' : ''}${dStr}`;
+                          }
+                        }
+
+                        let progStr = task.progress || '0%';
+                        if (!progStr.endsWith('%')) {
+                          const val = parseInt(progStr);
+                          if (!isNaN(val)) progStr = `${val}%`;
+                        }
+
+                        const getProgressColor = (barColor) => {
+                          if (!barColor) return 'bg-black/20';
+                          if (barColor.includes('purple')) return 'bg-purple-500';
+                          if (barColor.includes('pink')) return 'bg-pink-500';
+                          if (barColor.includes('blue')) return 'bg-blue-500';
+                          if (barColor.includes('yellow')) return 'bg-yellow-500';
+                          if (barColor.includes('emerald')) return 'bg-emerald-500';
+                          return 'bg-black/20';
+                        };
+
                         return (
                           <div key={task.id} className="min-h-[36px] border-b border-slate-100/50 dark:border-slate-800/50 relative group flex items-center">
-                            {style && !isNaN(new Date(task.start)) && !isNaN(new Date(task.end)) && (
+                            {style && !isNaN(startD) && !isNaN(endD) && (
                               <motion.div
                                 initial={{ scaleX: 0, opacity: 0 }}
-                                animate={{ scaleX: 1, opacity: 1 }}
-                                transition={{ duration: 0.3 }}
-                                className={`absolute h-[20px] ${cat.barColor} rounded-sm shadow-sm opacity-90 ${!isReadOnly ? 'group-hover:opacity-100 group-hover:shadow-md cursor-pointer hover:ring-2 ring-slate-400' : ''} transition-all origin-left`}
+                                animate={{ scaleX: 1, opacity: 1, x: 0 }}
+                                transition={{ default: { duration: 0.3 }, x: { duration: 0 } }}
+                                className={`absolute h-[20px] ${cat.barColor} rounded-sm shadow-sm opacity-90 ${!isReadOnly ? 'group-hover:opacity-100 group-hover:shadow-md cursor-pointer hover:ring-2 ring-slate-400' : ''} transition-all origin-left z-10 overflow-hidden`}
                                 style={style}
-                                title={`${task.name}\n${task.start} to ${task.end}`}
+                                title={`${task.name}\n${task.start} to ${task.end}${durationText}`}
                                 onClick={() => !isReadOnly && handleEditTask(cat.id, task)}
-                              />
+                              >
+                                <div 
+                                  className={`h-full ${getProgressColor(cat.barColor)}`} 
+                                  style={{ width: progStr }}
+                                />
+                              </motion.div>
                             )}
                           </div>
                         );
@@ -445,6 +645,14 @@ export default function ProjectGanttChart() {
           </div>
         </motion.div>
       </div>
+
+      <ConfirmDialog 
+        open={deleteDialog.open}
+        title={deleteDialog.title}
+        message={deleteDialog.message}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteDialog({ open: false, type: null, catId: null, taskId: null, title: '', message: '' })}
+      />
     </div>
   );
 }

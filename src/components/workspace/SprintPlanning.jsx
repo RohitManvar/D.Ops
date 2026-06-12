@@ -197,12 +197,12 @@ export default function SprintPlanning() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-sm text-slate-500 mb-1 block">Deliverables (comma separated)</label>
-                  <Input 
-                    placeholder="Auth UI, Auth API, Tests" 
+                  <label className="text-sm text-slate-500 mb-1 block">Deliverables</label>
+                  <Textarea 
+                    placeholder="e.g.&#10;- Auth UI&#10;- Auth API&#10;- Tests" 
                     value={deliverables} 
                     onChange={e => setDeliverables(e.target.value)}
-                    className="rounded-xl"
+                    className="rounded-xl min-h-[100px]"
                   />
                 </div>
               </div>
@@ -249,9 +249,12 @@ export default function SprintPlanning() {
                       )}
                     </div>
                     {s.deliverables && (
-                      <p className="text-xs text-slate-400 mt-2">
-                        Deliverables: {s.deliverables}
-                      </p>
+                      <div className="mt-3 text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Deliverables:</span>
+                        <div className="whitespace-pre-wrap leading-relaxed">
+                          {s.deliverables}
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-1 items-center">
