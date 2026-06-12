@@ -126,7 +126,7 @@ export default function ProductBacklog() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 p-8">
+    <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <Link to="/">

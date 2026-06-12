@@ -193,13 +193,13 @@ export default function DashboardHub() {
         </div>
       </motion.nav>
 
-      <div className="max-w-5xl mx-auto pt-28">
+      <div className="max-w-5xl mx-auto pt-20 md:pt-28">
         <div className="mb-10">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-2 flex flex-wrap items-center gap-2 md:gap-3">
             Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
-            <span className="ml-3 align-middle px-2 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-slate-800 uppercase tracking-wider">{isReviewer ? 'Reviewer' : 'Executor'}</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-slate-800 uppercase tracking-wider">{isReviewer ? 'Reviewer' : 'Executor'}</span>
           </h1>
-          <p className="text-slate-500 dark:text-slate-400">Select a module to continue your work.</p>
+          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400">Select a module to continue your work.</p>
         </div>
 
         <motion.div 

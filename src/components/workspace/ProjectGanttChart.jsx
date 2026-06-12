@@ -400,7 +400,8 @@ export default function ProjectGanttChart() {
           variants={containerVariants} 
           initial="hidden" 
           animate="show"
-          className="border border-slate-200 dark:border-slate-700 overflow-x-auto shadow-sm rounded-lg"
+          className="w-full border border-slate-200 dark:border-slate-700 overflow-x-auto shadow-sm rounded-lg"
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <div className="min-w-[1200px] flex text-xs">
             {/* LEFT PANE: Task Table */}
