@@ -16,6 +16,8 @@ import AnalyticsDashboard from './components/workspace/AnalyticsDashboard'
 import GithubWork from './components/workspace/GithubWork'
 import CommandPalette from './components/CommandPalette'
 import MeshBackground from './components/ui/MeshBackground'
+import DocumentHub from './components/workspace/DocumentHub'
+import WordEditor from './components/workspace/WordEditor'
 
 
 import SettingsHub from './components/workspace/SettingsHub'
@@ -44,6 +46,8 @@ function App() {
                   <Route path="/github-work" element={<ProtectedRoute><GithubWork /></ProtectedRoute>} />
                   <Route path="/daily-update" element={<ProtectedRoute><DailyUpdateModule /></ProtectedRoute>} />
                   <Route path="/analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
+                  <Route path="/documents" element={<ProtectedRoute><DocumentHub /></ProtectedRoute>} />
+                  <Route path="/documents/:id" element={<ProtectedRoute><WordEditor /></ProtectedRoute>} />
 
 
                   <Route path="/project-gantt" element={<ProtectedRoute><ProjectList /></ProtectedRoute>} />

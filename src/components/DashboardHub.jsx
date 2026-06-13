@@ -31,7 +31,8 @@ import {
   BrainCircuit,
   CalendarDays,
   Settings,
-  Users
+  Users,
+  FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ProfilePanel from '@/components/ProfilePanel'
@@ -86,6 +87,9 @@ export default function DashboardHub() {
     },
     { 
       to: "/analytics", title: "Analytics & Insights", icon: Activity, desc: "View your productivity trends and project stats"
+    },
+    {
+      to: "/documents", title: "Documents", icon: FileText, desc: "Create and manage Word-like rich text documents"
     },
     {
       to: "/project-gantt", title: "Project Gantt", icon: BarChart, desc: "Detailed Gantt chart for VSM Tool Automation"

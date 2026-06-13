@@ -10,6 +10,13 @@ import { useToast } from '@/components/ui/toast'
 import { ArrowLeft, Plus, CheckCircle, Send, CheckCheck, Trash2, Edit2 } from 'lucide-react'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  if (!year || !month || !day) return dateStr;
+  return `${day}-${month}-${year}`;
+}
+
 export default function SprintPlanning() {
   const { user } = useAuth()
   const { addToast } = useToast()
@@ -34,7 +41,7 @@ export default function SprintPlanning() {
       .from('sprints')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .order('start_date', { ascending: false })
     
     if (!error) {
       setSprints(data || [])
@@ -75,7 +82,8 @@ export default function SprintPlanning() {
         return
       }
 
-      setSprints(sprints.map(s => s.id === editingSprintId ? data : s))
+      const updatedSprints = sprints.map(s => s.id === editingSprintId ? data : s)
+      setSprints(updatedSprints.sort((a, b) => new Date(b.start_date) - new Date(a.start_date)))
       addToast("Sprint updated", "success")
     } else {
       const { data, error } = await supabase.from('sprints').insert({
@@ -91,7 +99,8 @@ export default function SprintPlanning() {
         return
       }
 
-      setSprints([data, ...sprints])
+      const newSprints = [data, ...sprints]
+      setSprints(newSprints.sort((a, b) => new Date(b.start_date) - new Date(a.start_date)))
       addToast("Sprint created", "success")
     }
 
@@ -240,7 +249,7 @@ export default function SprintPlanning() {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-sm text-slate-500">
-                        {s.start_date} to {s.end_date}
+                        {formatDate(s.start_date)} to {formatDate(s.end_date)}
                       </p>
                       {sprintApprovals[s.id] && (
                         <div title={`Share Status: ${sprintApprovals[s.id]}`}>
