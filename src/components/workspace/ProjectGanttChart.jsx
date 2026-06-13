@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Edit2, Trash2, Check, Plus, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Check, Plus, X, Loader2, Star, CheckCheck, Flag } from 'lucide-react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { containerVariants, itemVariants } from '@/lib/animations';
@@ -35,7 +35,18 @@ export default function ProjectGanttChart() {
   const [editingCat, setEditingCat] = useState(null); // catId
   const [editForm, setEditForm] = useState({});
   const [dragInfo, setDragInfo] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, type: null, catId: null, taskId: null, title: '', message: '' });
+
+  useEffect(() => {
+    const closeMenu = () => setContextMenu(null);
+    window.addEventListener('click', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+    return () => {
+      window.removeEventListener('click', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+    };
+  }, []);
 
   useEffect(() => {
     if (user && projectId) {
@@ -254,6 +265,46 @@ export default function ProjectGanttChart() {
     setDeleteDialog({ open: false, type: null, catId: null, taskId: null, title: '', message: '' });
   };
 
+  const handleContextMenuAction = (action) => {
+    if (!contextMenu) return;
+    const { type, catId, taskId } = contextMenu;
+
+    let newData = [...data];
+
+    if (type === 'category') {
+      newData = newData.map(c => {
+        if (c.id === catId) {
+          if (action === 'star') return { ...c, star: !c.star };
+          if (action === 'flag') return { ...c, flag: !c.flag };
+          if (action === 'complete') {
+            return { ...c, tasks: c.tasks.map(t => ({ ...t, progress: '100%' })) };
+          }
+        }
+        return c;
+      });
+    } else if (type === 'task') {
+      newData = newData.map(c => {
+        if (c.id === catId) {
+          return {
+            ...c,
+            tasks: c.tasks.map(t => {
+              if (t.id === taskId) {
+                if (action === 'star') return { ...t, star: !t.star };
+                if (action === 'flag') return { ...t, flag: !t.flag };
+                if (action === 'complete') return { ...t, progress: '100%' };
+              }
+              return t;
+            })
+          };
+        }
+        return c;
+      });
+    }
+
+    saveData(newData);
+    setContextMenu(null);
+  };
+
   const handleAddTask = (catId) => {
     const newTask = {
       id: "t" + Date.now(),
@@ -389,9 +440,9 @@ export default function ProjectGanttChart() {
               <div className="h-[60px] flex items-end border-b border-slate-200 dark:border-slate-700 pb-2 font-bold px-2 sticky top-0 z-30 bg-white dark:bg-slate-900">
                 <div className="w-[50%] pl-2">TASK</div>
                 <div className="w-[12%] text-center">PROG</div>
-                <div className="w-[15%] text-center">START</div>
-                <div className="w-[15%] text-center">END</div>
-                <div className="w-[8%] text-center">ACT</div>
+                <div className="w-[14%] text-center">START</div>
+                <div className="w-[14%] text-center">END</div>
+                <div className="w-[10%] text-center">ACT</div>
               </div>
 
               {/* Rows */}
@@ -405,7 +456,13 @@ export default function ProjectGanttChart() {
                       onDragEnd={handleDragEndNative}
                       onDragOver={handleDragOverNative}
                       onDrop={(e) => handleDropNative(e, { type: 'category', index: catIndex })}
-                      className={`${cat.color} ${cat.textColor} font-bold p-2 min-h-[36px] flex items-center justify-between border-b border-slate-200/50 dark:border-slate-700/50 group ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                      onDoubleClick={() => { if(!isReadOnly){ setEditingCat(cat.id); setEditForm({ category: cat.category }); } }}
+                      onContextMenu={(e) => {
+                        if (isReadOnly) return;
+                        e.preventDefault();
+                        setContextMenu({ x: e.clientX, y: e.clientY, type: 'category', catId: cat.id, item: cat });
+                      }}
+                      className={`${cat.color} ${cat.textColor} font-bold p-2 min-h-[36px] flex items-center justify-between border-b border-slate-200/50 dark:border-slate-700/50 group ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''} select-none relative`}
                     >
                       {editingCat === cat.id ? (
                         <div className="flex items-center gap-2 w-full">
@@ -421,11 +478,14 @@ export default function ProjectGanttChart() {
                         </div>
                       ) : (
                         <>
-                          <span className="flex-1 truncate pr-2">{cat.category}</span>
+                          <span className="flex-1 truncate pr-2 flex items-center gap-1.5">
+                            {cat.star && <Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0" />}
+                            {cat.flag && <Flag className="w-4 h-4 text-red-500 fill-red-500 flex-shrink-0" />}
+                            <span className="truncate">{cat.category}</span>
+                          </span>
                           {!isReadOnly && (
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => { setEditingCat(cat.id); setEditForm({ category: cat.category }); }} className="p-1 hover:bg-white/50 rounded" title="Edit Category"><Edit2 className="w-3 h-3" /></button>
-                              <button onClick={() => handleDeleteCategory(cat.id)} className="p-1 hover:bg-white/50 rounded text-red-600" title="Delete Category"><Trash2 className="w-3 h-3" /></button>
+                              <button onClick={() => handleDeleteCategory(cat.id)} className="p-1 hover:bg-white/50 rounded text-red-600" title="Delete Phase"><Trash2 className="w-3 h-3" /></button>
                             </div>
                           )}
                         </>
@@ -444,7 +504,13 @@ export default function ProjectGanttChart() {
                           onDragEnd={handleDragEndNative}
                           onDragOver={handleDragOverNative}
                           onDrop={(e) => handleDropNative(e, { type: 'task', catIndex, taskIndex })}
-                          className={`flex items-center min-h-[36px] border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${!isReadOnly && !isEditing ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                          onDoubleClick={() => !isReadOnly && !isEditing && handleEditTask(cat.id, task)}
+                          onContextMenu={(e) => {
+                            if (isReadOnly || isEditing) return;
+                            e.preventDefault();
+                            setContextMenu({ x: e.clientX, y: e.clientY, type: 'task', catId: cat.id, taskId: task.id, item: task });
+                          }}
+                          className={`flex items-center min-h-[36px] border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${!isReadOnly && !isEditing ? 'cursor-grab active:cursor-grabbing' : ''} select-none relative`}
                         >
                           {isEditing ? (
                             <div 
@@ -457,27 +523,30 @@ export default function ProjectGanttChart() {
                               <div className="w-[12%]">
                                 <input className="w-full text-xs px-1 py-1 border rounded bg-white dark:bg-slate-800 dark:border-slate-600 text-center" value={editForm.progress} onChange={e => setEditForm({...editForm, progress: e.target.value})} />
                               </div>
-                              <div className="w-[15%]">
+                              <div className="w-[14%]">
                                 <input type="date" className="w-full text-[10px] px-1 py-1 border rounded bg-white dark:bg-slate-800 dark:border-slate-600" value={editForm.start} onChange={e => setEditForm({...editForm, start: e.target.value})} />
                               </div>
-                              <div className="w-[15%]">
+                              <div className="w-[14%]">
                                 <input type="date" className="w-full text-[10px] px-1 py-1 border rounded bg-white dark:bg-slate-800 dark:border-slate-600" value={editForm.end} onChange={e => setEditForm({...editForm, end: e.target.value})} />
                               </div>
-                              <div className="w-[8%] flex justify-center gap-1">
+                              <div className="w-[10%] flex justify-center gap-1">
                                 <button onClick={() => handleSaveTask(cat.id)} className="text-emerald-600 hover:bg-emerald-100 p-1 rounded"><Check className="w-3 h-3" /></button>
                                 <button onClick={() => setEditingTask(null)} className="text-slate-500 hover:bg-slate-200 p-1 rounded"><X className="w-3 h-3" /></button>
                               </div>
                             </div>
                           ) : (
                             <>
-                              <div className="w-[50%] pl-4 pr-2 truncate text-slate-700 dark:text-slate-300" title={task.name}>{task.name}</div>
+                              <div className="w-[50%] pl-4 pr-2 truncate text-slate-700 dark:text-slate-300 flex items-center gap-1.5" title={task.name}>
+                                {task.star && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />}
+                                {task.flag && <Flag className="w-3.5 h-3.5 text-red-500 fill-red-500 flex-shrink-0" />}
+                                <span className="truncate">{task.name}</span>
+                              </div>
                               <div className="w-[12%] text-center">{task.progress}</div>
-                              <div className="w-[15%] text-center">{formatDateLabel(task.start)}</div>
-                              <div className="w-[15%] text-center">{formatDateLabel(task.end)}</div>
+                              <div className="w-[14%] text-center">{formatDateLabel(task.start)}</div>
+                              <div className="w-[14%] text-center">{formatDateLabel(task.end)}</div>
                               {!isReadOnly && (
-                                <div className="w-[8%] flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => handleEditTask(cat.id, task)} className="text-blue-500 hover:bg-blue-100 dark:hover:bg-slate-700 p-1 rounded"><Edit2 className="w-3 h-3" /></button>
-                                  <button onClick={() => handleDeleteTask(cat.id, task.id)} className="text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 p-1 rounded"><Trash2 className="w-3 h-3" /></button>
+                                <div className="w-[10%] flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={() => handleDeleteTask(cat.id, task.id)} className="text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 p-1 rounded" title="Delete Task"><Trash2 className="w-3 h-3" /></button>
                                 </div>
                               )}
                             </>
@@ -606,6 +675,11 @@ export default function ProjectGanttChart() {
                                   className={`h-full ${getProgressColor(cat.barColor)}`} 
                                   style={{ width: progStr }}
                                 />
+                                {task.flag && (
+                                  <div className="absolute right-0 top-0 h-full flex items-center pr-1">
+                                    <Flag className="w-3.5 h-3.5 text-red-600 fill-red-600 drop-shadow-sm" />
+                                  </div>
+                                )}
                               </motion.div>
                             )}
                           </div>
@@ -625,6 +699,43 @@ export default function ProjectGanttChart() {
           </div>
         </motion.div>
       </div>
+
+      {/* Context Menu (WhatsApp style reaction pill) */}
+      {contextMenu && (
+        <div 
+          className="fixed z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-full px-3 py-2 flex items-center gap-2 transform -translate-x-1/2 -translate-y-[120%]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button 
+            onClick={() => handleContextMenuAction('star')} 
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors flex items-center justify-center group"
+            title="Toggle Star"
+          >
+            <Star className={`w-5 h-5 ${contextMenu.item?.star ? 'text-amber-500 fill-amber-500' : 'text-slate-400 group-hover:text-amber-500'}`} />
+          </button>
+          
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
+          
+          <button 
+            onClick={() => handleContextMenuAction('complete')} 
+            className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-full transition-colors flex items-center justify-center group"
+            title="Mark Completed"
+          >
+            <CheckCheck className="w-5 h-5 text-slate-400 group-hover:text-emerald-500" />
+          </button>
+
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
+          
+          <button 
+            onClick={() => handleContextMenuAction('flag')} 
+            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors flex items-center justify-center group"
+            title="Toggle Flag (Milestone)"
+          >
+            <Flag className={`w-5 h-5 ${contextMenu.item?.flag ? 'text-red-500 fill-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+          </button>
+        </div>
+      )}
 
       <ConfirmDialog 
         open={deleteDialog.open}
