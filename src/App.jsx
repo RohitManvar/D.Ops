@@ -24,6 +24,7 @@ import SettingsHub from './components/workspace/SettingsHub'
 import TeamRoster from './components/reviewer/TeamRoster'
 import ProjectGanttChart from './components/workspace/ProjectGanttChart'
 import ProjectList from './components/workspace/ProjectList'
+import ProjectDashboard from './components/workspace/ProjectDashboard'
 
 function App() {
   return (
@@ -52,6 +53,14 @@ function App() {
 
                   <Route path="/project-gantt" element={<ProtectedRoute><ProjectList /></ProtectedRoute>} />
                   <Route path="/project-gantt/:projectId" element={<ProtectedRoute><ProjectGanttChart /></ProtectedRoute>} />
+                  
+                  {/* Project Specific Routes */}
+                  <Route path="/project/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
+                  <Route path="/project/:projectId/backlog" element={<ProtectedRoute><ProductBacklog /></ProtectedRoute>} />
+                  <Route path="/project/:projectId/sprints" element={<ProtectedRoute><SprintPlanning /></ProtectedRoute>} />
+                  <Route path="/project/:projectId/documents" element={<ProtectedRoute><DocumentHub /></ProtectedRoute>} />
+                  <Route path="/project/:projectId/documents/:id" element={<ProtectedRoute><WordEditor /></ProtectedRoute>} />
+
                   <Route path="/settings" element={<ProtectedRoute><SettingsHub /></ProtectedRoute>} />
                   <Route path="/reviewer" element={<ProtectedRoute allowedRoles={['reviewer']}><ReviewerDashboard /></ProtectedRoute>} />
                   <Route path="/team" element={<ProtectedRoute allowedRoles={['reviewer']}><TeamRoster /></ProtectedRoute>} />

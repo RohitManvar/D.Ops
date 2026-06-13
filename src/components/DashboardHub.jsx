@@ -32,9 +32,14 @@ import {
   CalendarDays,
   Settings,
   Users,
-  FileText
+  FileText,
+  Plus,
+  FolderKanban,
+  CheckCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toast'
 import ProfilePanel from '@/components/ProfilePanel'
 import GlassCard from '@/components/ui/GlassCard'
 import { containerVariants, itemVariants } from '@/lib/animations'
@@ -42,9 +47,13 @@ import { containerVariants, itemVariants } from '@/lib/animations'
 export default function DashboardHub() {
   const { user, isReviewer, signOut } = useAuth()
   const { dark, toggleTheme } = useTheme()
+  const { addToast } = useToast()
   const [showShare, setShowShare] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [notes, setNotes] = useState([])
+  const [projects, setProjects] = useState([])
+  const [showNewProject, setShowNewProject] = useState(false)
+  const [newProject, setNewProject] = useState({ name: '', company: '' })
   const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
@@ -62,6 +71,15 @@ export default function DashboardHub() {
         .order("date", { ascending: false })
         .then(({ data }) => {
           if (data) setNotes(data)
+        })
+
+      supabase
+        .from('gantt_projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => {
+          if (data) setProjects(data)
         })
     }
   }, [user?.id, isReviewer])
@@ -92,12 +110,39 @@ export default function DashboardHub() {
       to: "/documents", title: "Documents", icon: FileText, desc: "Create and manage Word-like rich text documents"
     },
     {
-      to: "/project-gantt", title: "Project Gantt", icon: BarChart, desc: "Detailed Gantt chart for VSM Tool Automation"
+      to: "/project-gantt", title: "All Projects (Legacy)", icon: BarChart, desc: "Detailed Gantt chart for VSM Tool Automation"
     },
     {
       to: "/settings", title: "Settings Hub", icon: Settings, desc: "Manage GitHub integrations and preferences"
     },
   ]
+
+  const handleCreateProject = async (e) => {
+    e.preventDefault()
+    if (!newProject.name) return
+    
+    const payload = {
+      user_id: user.id,
+      name: newProject.name,
+      company: newProject.company || 'Internal',
+      start_date: new Date().toISOString().split('T')[0]
+    }
+
+    const { data, error } = await supabase.from('gantt_projects').insert(payload).select().single()
+    if (error) {
+      addToast("Failed to create project", "error")
+    } else {
+      await supabase.from('gantt_data').insert({
+        project_id: data.id,
+        user_id: user.id,
+        tasks_json: []
+      })
+      setProjects([data, ...projects])
+      setShowNewProject(false)
+      setNewProject({ name: '', company: '' })
+      addToast("Project created!", "success")
+    }
+  }
 
   const reviewerLinks = [
     { 
@@ -203,8 +248,76 @@ export default function DashboardHub() {
             Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
             <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-slate-800 uppercase tracking-wider">{isReviewer ? 'Reviewer' : 'Executor'}</span>
           </h1>
-          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400">Select a module to continue your work.</p>
+          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400">Manage your projects or select a global module to continue your work.</p>
         </div>
+
+        {/* Projects Section */}
+        {!isReviewer && (
+          <>
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Your Projects</h2>
+                <p className="text-sm text-slate-500">Dedicated spaces for specific project work.</p>
+              </div>
+              <Button onClick={() => setShowNewProject(true)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm">
+                <Plus className="h-4 w-4 mr-2" /> Create Project
+              </Button>
+            </div>
+            
+            {showNewProject && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
+                <h3 className="font-semibold mb-4 text-slate-900 dark:text-slate-100">New Project</h3>
+                <form onSubmit={handleCreateProject} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Project Name *</label>
+                    <Input required autoFocus value={newProject.name} onChange={e => setNewProject({...newProject, name: e.target.value})} placeholder="e.g. Website Redesign" className="rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Client / Company</label>
+                    <Input value={newProject.company} onChange={e => setNewProject({...newProject, company: e.target.value})} placeholder="e.g. Acme Corp" className="rounded-xl" />
+                  </div>
+                  <div className="md:col-span-2 flex justify-end gap-2 mt-2">
+                    <Button type="button" variant="outline" className="rounded-xl" onClick={() => setShowNewProject(false)}>Cancel</Button>
+                    <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl">Save Project</Button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-16">
+              {projects.length === 0 && !showNewProject ? (
+                <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <FolderKanban className="mx-auto h-8 w-8 text-slate-300 mb-2" />
+                  <p className="text-slate-500">No projects yet. Create one to get started!</p>
+                </div>
+              ) : (
+                projects.map(proj => (
+                  <Link key={proj.id} to={`/project/${proj.id}`} className="block group">
+                    <div className="p-5 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl transition-colors shadow-sm hover:shadow-md h-full flex flex-col justify-between">
+                      <div>
+                        <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 group-hover:scale-110 transition-transform">
+                          <FolderKanban className="h-5 w-5" />
+                        </div>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100 leading-tight mb-1">{proj.name}</h3>
+                        <p className="text-xs text-slate-500 mb-4">{proj.company}</p>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                        Created {new Date(proj.start_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Global Modules</h2>
+                <p className="text-sm text-slate-500">Cross-project tools and analytics.</p>
+              </div>
+            </div>
+          </>
+        )}
 
         <motion.div 
           className="grid grid-cols-1 md:grid-cols-2 gap-6"

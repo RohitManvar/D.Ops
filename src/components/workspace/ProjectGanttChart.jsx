@@ -382,9 +382,9 @@ export default function ProjectGanttChart() {
       <div className="max-w-[1600px] mx-auto">
         <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <Link to={isReadOnly ? `/reviewer?tab=${sourceTab}` : "/project-gantt"}>
+            <Link to={isReadOnly ? `/reviewer?tab=${sourceTab}` : `/project/${projectId}`}>
               <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-slate-500 hover:text-slate-900 dark:hover:text-white">
-                <ArrowLeft className="h-4 w-4 mr-2" /> {isReadOnly ? "Back to Dashboard" : "Back to Projects"}
+                <ArrowLeft className="h-4 w-4 mr-2" /> {isReadOnly ? "Back to Dashboard" : "Back to Project Hub"}
               </Button>
             </Link>
             <h1 className="text-2xl font-bold text-slate-700 dark:text-slate-200">{projectInfo.name}</h1>

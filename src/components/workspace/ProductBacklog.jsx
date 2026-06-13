@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/context/AuthProvider'
 import { Button } from '@/components/ui/button'
@@ -11,12 +12,14 @@ import { ArrowLeft, Plus, Trash2, CheckCheck, Send, CheckCircle, Edit2 } from 'l
 import ConfirmDialog from '@/components/ui/confirm-dialog'
 
 export default function ProductBacklog() {
+  const { projectId } = useParams()
   const { user } = useAuth()
   const { addToast } = useToast()
   const [features, setFeatures] = useState([])
   const [shareStatus, setShareStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editingFeatureId, setEditingFeatureId] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null })
 
   const [newTitle, setNewTitle] = useState('')
@@ -30,11 +33,17 @@ export default function ProductBacklog() {
 
   const loadFeatures = async () => {
     setLoading(true)
-    const { data, error } = await supabase
+    let query = supabase
       .from('features')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
+      
+    if (projectId) {
+      query = query.eq('project_id', projectId)
+    }
+
+    const { data, error } = await query
     
     if (error) {
       if (error.message.includes('relation "features" does not exist')) {
@@ -81,13 +90,18 @@ export default function ProductBacklog() {
       setFeatures(features.map(f => f.id === editingFeatureId ? data : f))
       addToast("Feature updated", "success")
     } else {
-      const { data, error } = await supabase.from('features').insert({
+      const payload = {
         title: newTitle,
         description: newDesc,
         priority: newPriority,
         estimation: newEst,
         user_id: user.id
-      }).select().single()
+      }
+      if (projectId) {
+        payload.project_id = projectId
+      }
+
+      const { data, error } = await supabase.from('features').insert(payload).select().single()
 
       if (error) {
         addToast(error.message, "error")
@@ -107,6 +121,7 @@ export default function ProductBacklog() {
     setNewDesc('')
     setNewPriority('Medium')
     setNewEst('')
+    setIsModalOpen(false)
   }
 
   const triggerDelete = (id) => {
@@ -128,76 +143,98 @@ export default function ProductBacklog() {
   return (
     <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Link to="/">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
-            Product Backlog
-            {shareStatus && (
-              <div title={`Latest Share: ${shareStatus.status}`} className="flex items-center gap-1 text-sm font-normal text-slate-500 bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
-                <span className="text-[10px]">Shared {new Date(shareStatus.created_at).toLocaleDateString()}</span>
-                <CheckCheck className={`h-4 w-4 ${shareStatus.status === 'Read' ? 'text-blue-500' : 'text-slate-400'}`} />
-              </div>
-            )}
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Manage your master list of features and prioritize tasks.</p>
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <Link to={projectId ? `/project/${projectId}` : "/"}>
+              <Button variant="ghost" className="mb-4 -ml-4">
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back to {projectId ? 'Project' : 'Dashboard'}
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
+              {projectId ? 'Project Backlog' : 'Global Product Backlog'}
+              {shareStatus && (
+                <div title={`Latest Share: ${shareStatus.status}`} className="flex items-center gap-1 text-sm font-normal text-slate-500 bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
+                  <span className="text-[10px]">Shared {new Date(shareStatus.created_at).toLocaleDateString()}</span>
+                  <CheckCheck className={`h-4 w-4 ${shareStatus.status === 'Read' ? 'text-blue-500' : 'text-slate-400'}`} />
+                </div>
+              )}
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2">Manage your master list of features and prioritize tasks.</p>
+          </div>
+          <Button onClick={() => setIsModalOpen(true)} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white self-start md:self-auto shadow-md">
+            <Plus className="h-4 w-4 mr-2" /> Create Feature
+          </Button>
         </div>
 
-        <Card className="mb-8 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
-          <CardContent className="pt-6">
-            <form onSubmit={handleSaveFeature} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-2">
-                  <Input 
-                    placeholder="Feature Title" 
-                    value={newTitle} 
-                    onChange={e => setNewTitle(e.target.value)} 
-                    className="rounded-xl"
-                  />
+      <AnimatePresence>
+        {isModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={resetForm}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="fixed left-1/2 top-1/2 z-50 w-[95%] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-[24px] border border-slate-200 bg-white p-6 md:p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900"
+            >
+              <h2 className="text-xl font-bold mb-6 text-slate-900 dark:text-white">
+                {editingFeatureId ? 'Edit Feature' : 'Create New Feature'}
+              </h2>
+              <form onSubmit={handleSaveFeature} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-2">
+                    <Input 
+                      placeholder="Feature Title" 
+                      value={newTitle} 
+                      onChange={e => setNewTitle(e.target.value)} 
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <select 
+                      value={newPriority}
+                      onChange={e => setNewPriority(e.target.value)}
+                      className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:focus-visible:ring-slate-300"
+                    >
+                      <option value="High">High Priority</option>
+                      <option value="Medium">Medium Priority</option>
+                      <option value="Low">Low Priority</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Input 
+                      placeholder="Estimate (e.g. 3 days)" 
+                      value={newEst} 
+                      onChange={e => setNewEst(e.target.value)}
+                      className="rounded-xl"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <select 
-                    value={newPriority}
-                    onChange={e => setNewPriority(e.target.value)}
-                    className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:focus-visible:ring-slate-300"
-                  >
-                    <option value="High">High Priority</option>
-                    <option value="Medium">Medium Priority</option>
-                    <option value="Low">Low Priority</option>
-                  </select>
-                </div>
-                <div>
-                  <Input 
-                    placeholder="Estimate (e.g. 3 days)" 
-                    value={newEst} 
-                    onChange={e => setNewEst(e.target.value)}
-                    className="rounded-xl"
-                  />
-                </div>
-              </div>
-              <Textarea 
-                placeholder="Feature Description" 
-                value={newDesc} 
-                onChange={e => setNewDesc(e.target.value)}
-                className="rounded-xl"
-              />
-              <div className="flex justify-end gap-2">
-                {editingFeatureId && (
+                <Textarea 
+                  placeholder="Feature Description" 
+                  value={newDesc} 
+                  onChange={e => setNewDesc(e.target.value)}
+                  className="rounded-xl"
+                />
+                <div className="flex justify-end gap-3 mt-8">
                   <Button type="button" variant="outline" className="rounded-xl" onClick={resetForm}>
                     Cancel
                   </Button>
-                )}
-                <Button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
-                  {editingFeatureId ? <CheckCircle className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                  {editingFeatureId ? "Update Feature" : "Add Feature"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                  <Button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+                    {editingFeatureId ? <CheckCircle className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                    {editingFeatureId ? "Update Feature" : "Add Feature"}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
         {loading ? (
           <div className="text-center py-8">Loading backlog...</div>
@@ -227,7 +264,7 @@ export default function ProductBacklog() {
                       setNewDesc(f.description || '')
                       setNewPriority(f.priority)
                       setNewEst(f.estimation || '')
-                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                      setIsModalOpen(true)
                     }}>
                       <Edit2 className="h-4 w-4 text-slate-400 hover:text-blue-500" />
                     </Button>

@@ -57,7 +57,7 @@ const MenuBar = ({ editor }) => {
 };
 
 export default function WordEditor() {
-  const { id } = useParams();
+  const { id, projectId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -178,9 +178,9 @@ export default function WordEditor() {
   return (
     <div className="min-h-screen bg-[#f7f6f3] dark:bg-[#0f172a] flex flex-col">
       {/* Top Navbar */}
-      <div className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sticky top-0 z-10 print:hidden">
+      <div className="fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-md dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 z-40 print:hidden shadow-sm">
         <div className="flex items-center gap-4 flex-1">
-          <Link to="/documents">
+          <Link to={projectId ? `/project/${projectId}/documents` : "/documents"}>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -197,22 +197,22 @@ export default function WordEditor() {
           <span className="text-xs text-slate-400">
             {saving ? 'Saving...' : lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : ''}
           </span>
-          <Button variant="outline" size="sm" onClick={() => window.print()} className="hidden sm:flex h-8 gap-1.5 rounded-lg">
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="hidden sm:flex h-8 gap-1.5 rounded-lg bg-white dark:bg-slate-800">
              <Printer className="h-3.5 w-3.5" /> Print
           </Button>
-          <Button size="sm" onClick={handleManualSave} className="h-8 gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
+          <Button size="sm" onClick={handleManualSave} className="h-8 gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
             <Save className="h-3.5 w-3.5" /> Save
           </Button>
         </div>
       </div>
 
       {/* Editor Toolbar */}
-      <div className="sticky top-14 z-10 print:hidden">
+      <div className="fixed top-14 left-0 right-0 z-30 print:hidden shadow-sm">
         <MenuBar editor={editor} />
       </div>
 
       {/* Editor Content Area (The "Paper") */}
-      <div className="flex-1 overflow-auto p-4 md:p-8 flex justify-center print:p-0 print:overflow-visible">
+      <div className="flex-1 overflow-auto pt-32 p-4 md:p-8 flex justify-center print:p-0 print:overflow-visible">
         <div className="w-full max-w-[816px] print:max-w-none">
           <EditorContent editor={editor} />
         </div>

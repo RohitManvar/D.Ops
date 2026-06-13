@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthProvider';
@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
 
 export default function DocumentHub() {
+  const { projectId } = useParams();
   const { user } = useAuth();
   const { dark } = useTheme();
   const navigate = useNavigate();
@@ -30,11 +31,17 @@ export default function DocumentHub() {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('documents')
         .select('*')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         if (error.code === '42P01') {
@@ -60,6 +67,10 @@ export default function DocumentHub() {
         title: 'Untitled Document',
         content: '',
       };
+      
+      if (projectId) {
+        newDoc.project_id = projectId;
+      }
 
       const { data, error } = await supabase
         .from('documents')
@@ -70,7 +81,7 @@ export default function DocumentHub() {
       if (error) throw error;
       
       addToast("Document created", "success");
-      navigate(`/documents/${data.id}`);
+      navigate(projectId ? `/project/${projectId}/documents/${data.id}` : `/documents/${data.id}`);
     } catch (error) {
       console.error('Error creating document:', error);
       if (error.code === '42P01') {
@@ -119,13 +130,15 @@ export default function DocumentHub() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link to="/">
+            <Link to={projectId ? `/project/${projectId}` : "/"}>
               <Button variant="ghost" className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl px-3">
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Documents</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                {projectId ? 'Project Documents' : 'Global Documents'}
+              </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">Create and edit Word-like documents</p>
             </div>
           </div>
@@ -181,7 +194,7 @@ export default function DocumentHub() {
                 <div className="group relative h-64 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden">
                   
                   {/* Document Preview (Mockup) */}
-                  <Link to={`/documents/${doc.id}`} className="flex-1 bg-slate-50 dark:bg-slate-900/50 p-4 border-b border-slate-100 dark:border-slate-700/50 overflow-hidden cursor-pointer flex justify-center pt-8">
+                  <Link to={projectId ? `/project/${projectId}/documents/${doc.id}` : `/documents/${doc.id}`} className="flex-1 bg-slate-50 dark:bg-slate-900/50 p-4 border-b border-slate-100 dark:border-slate-700/50 overflow-hidden cursor-pointer flex justify-center pt-8">
                      <div className="bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 w-3/4 h-full rounded-t-md p-3 text-[8px] text-slate-300 dark:text-slate-600 overflow-hidden" dangerouslySetInnerHTML={{ __html: doc.content?.substring(0, 500) || '...' }} />
                   </Link>
                   
@@ -192,7 +205,7 @@ export default function DocumentHub() {
                         <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <Link to={`/documents/${doc.id}`} className="block">
+                        <Link to={projectId ? `/project/${projectId}/documents/${doc.id}` : `/documents/${doc.id}`} className="block">
                           <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             {doc.title || 'Untitled Document'}
                           </h3>
