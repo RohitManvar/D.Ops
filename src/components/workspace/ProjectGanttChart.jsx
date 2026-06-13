@@ -29,6 +29,7 @@ export default function ProjectGanttChart() {
   const [loading, setLoading] = useState(true);
   const [projectInfo, setProjectInfo] = useState({ name: 'Project Timeline', company: 'Interactive Gantt Chart' });
   const [data, setData] = useState([]);
+  const [history, setHistory] = useState([]);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [editingTask, setEditingTask] = useState(null); // { catId, taskId }
   const [editingCat, setEditingCat] = useState(null); // catId
@@ -71,7 +72,10 @@ export default function ProjectGanttChart() {
     setLoading(false);
   };
 
-  const saveData = async (newData) => {
+  const saveData = async (newData, addToHistory = true) => {
+    if (addToHistory) {
+      setHistory(prev => [...prev, data].slice(-20)); // keep last 20 actions
+    }
     setData(newData);
     const { error } = await supabase
       .from('gantt_data')
@@ -82,6 +86,28 @@ export default function ProjectGanttChart() {
       addToast("Failed to save changes", "error");
     }
   };
+
+  const handleUndo = () => {
+    if (history.length === 0 || isReadOnly) return;
+    const previousData = history[history.length - 1];
+    setHistory(prev => prev.slice(0, -1));
+    saveData(previousData, false);
+    addToast("Action undone", "success");
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        handleUndo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [history, isReadOnly, data]);
 
   const { minDate, maxDate, totalWeeks, weeks, daysInWeek, dayLetters, actualDurationStr } = useMemo(() => {
     let minD = new Date();
@@ -321,53 +347,6 @@ export default function ProjectGanttChart() {
       const targetCat = newData[targetInfo.index];
       targetCat.tasks.push(movedTask);
     }
-
-    // --- AUTO-SCHEDULE WATERFALL ---
-    const formatLocalDate = (date) => {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    };
-
-    let currentDate = new Date();
-    if (projectInfo.start_date) {
-      const [y, m, d] = projectInfo.start_date.split('-');
-      currentDate = new Date(y, m - 1, d);
-    } else {
-      currentDate.setHours(0,0,0,0);
-    }
-
-    newData.forEach(cat => {
-      cat.tasks.forEach(task => {
-        let oldStartD = new Date();
-        if (task.start) {
-          const [sy, sm, sd] = task.start.split('-');
-          oldStartD = new Date(sy, sm - 1, sd);
-        }
-        
-        let oldEndD = new Date();
-        if (task.end) {
-          const [ey, em, ed] = task.end.split('-');
-          oldEndD = new Date(ey, em - 1, ed);
-        }
-        
-        let durationDays = 1;
-        if (!isNaN(oldStartD) && !isNaN(oldEndD)) {
-          durationDays = Math.floor((oldEndD - oldStartD) / (1000 * 60 * 60 * 24)) + 1;
-          if (durationDays < 1) durationDays = 1;
-        }
-
-        task.start = formatLocalDate(currentDate);
-
-        const newEndD = new Date(currentDate);
-        newEndD.setDate(newEndD.getDate() + durationDays - 1);
-        task.end = formatLocalDate(newEndD);
-
-        currentDate = new Date(newEndD);
-        currentDate.setDate(currentDate.getDate() + 1);
-      });
-    });
 
     saveData(newData);
     setDragInfo(null);

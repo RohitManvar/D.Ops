@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
-import { ArrowLeft, Plus, CheckCircle, Send, CheckCheck, Trash2, Edit2, BarChart } from 'lucide-react'
+import { ArrowLeft, Plus, CheckCircle, Send, CheckCheck, Trash2, Edit2, BarChart, FolderInput, ChevronDown } from 'lucide-react'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
 
 const formatDate = (dateStr) => {
@@ -17,6 +17,13 @@ const formatDate = (dateStr) => {
   if (!year || !month || !day) return dateStr;
   return `${day}-${month}-${year}`;
 }
+
+const sortOptions = [
+  { value: 'newest_start', label: 'Start Date (Newest First)' },
+  { value: 'oldest_start', label: 'Start Date (Oldest First)' },
+  { value: 'newest_created', label: 'Recently Created' },
+  { value: 'oldest_created', label: 'Oldest Created' },
+]
 
 export default function SprintPlanning() {
   const { projectId } = useParams()
@@ -28,15 +35,30 @@ export default function SprintPlanning() {
   const [editingSprintId, setEditingSprintId] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null })
+  const [sortOrder, setSortOrder] = useState('newest_start')
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
 
   const [newGoal, setNewGoal] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [deliverables, setDeliverables] = useState('')
 
+  const [projects, setProjects] = useState([])
+  const [assignModal, setAssignModal] = useState({ open: false, sprintId: null })
+  const [selectedProjectId, setSelectedProjectId] = useState('')
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false)
+
   useEffect(() => {
     loadSprints()
+    if (!projectId) {
+      loadProjects()
+    }
   }, [])
+
+  const loadProjects = async () => {
+    const { data } = await supabase.from('gantt_projects').select('id, name').eq('user_id', user.id);
+    if (data) setProjects(data);
+  }
 
   const loadSprints = async () => {
     setLoading(true)
@@ -74,17 +96,38 @@ export default function SprintPlanning() {
     setLoading(false)
   }
 
+  const sortedSprints = React.useMemo(() => {
+    const list = [...sprints]
+    switch (sortOrder) {
+      case 'newest_start':
+        return list.sort((a, b) => new Date(b.start_date || 0) - new Date(a.start_date || 0))
+      case 'oldest_start':
+        return list.sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0))
+      case 'newest_created':
+        return list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      case 'oldest_created':
+        return list.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+      default:
+        return list
+    }
+  }, [sprints, sortOrder])
+
   const handleSaveSprint = async (e) => {
     e.preventDefault()
-    if (!newGoal.trim() || !startDate || !endDate) return
+    
+    const finalGoal = newGoal.trim() || 'Untitled Sprint'
 
     if (editingSprintId) {
-      const { data, error } = await supabase.from('sprints').update({
-        goal: newGoal,
-        start_date: startDate,
-        end_date: endDate,
+      const payload = {
+        goal: finalGoal,
         deliverables
-      }).eq('id', editingSprintId).select().single()
+      }
+      if (startDate) payload.start_date = startDate;
+      else payload.start_date = null;
+      if (endDate) payload.end_date = endDate;
+      else payload.end_date = null;
+
+      const { data, error } = await supabase.from('sprints').update(payload).eq('id', editingSprintId).select().single()
 
       if (error) {
         addToast(error.message, "error")
@@ -92,16 +135,16 @@ export default function SprintPlanning() {
       }
 
       const updatedSprints = sprints.map(s => s.id === editingSprintId ? data : s)
-      setSprints(updatedSprints.sort((a, b) => new Date(b.start_date) - new Date(a.start_date)))
+      setSprints(updatedSprints)
       addToast("Sprint updated", "success")
     } else {
       const payload = {
-        goal: newGoal,
-        start_date: startDate,
-        end_date: endDate,
+        goal: finalGoal,
         deliverables,
         user_id: user.id
       }
+      if (startDate) payload.start_date = startDate;
+      if (endDate) payload.end_date = endDate;
       
       if (projectId) {
         payload.project_id = projectId
@@ -115,7 +158,7 @@ export default function SprintPlanning() {
       }
 
       const newSprints = [data, ...sprints]
-      setSprints(newSprints.sort((a, b) => new Date(b.start_date) - new Date(a.start_date)))
+      setSprints(newSprints)
       addToast("Sprint created", "success")
     }
 
@@ -237,6 +280,25 @@ export default function SprintPlanning() {
     }
   }
 
+  const handleAssignProject = async () => {
+    if (!selectedProjectId || !assignModal.sprintId) return;
+    
+    const { error } = await supabase
+      .from('sprints')
+      .update({ project_id: selectedProjectId })
+      .eq('id', assignModal.sprintId);
+      
+    if (!error) {
+      setSprints(sprints.filter(s => s.id !== assignModal.sprintId));
+      addToast("Sprint assigned to project", "success");
+    } else {
+      addToast(error.message, "error");
+    }
+    
+    setAssignModal({ open: false, sprintId: null });
+    setSelectedProjectId('');
+  }
+
   return (
     <div className="min-h-screen bg-[#f7f6f3] dark:bg-slate-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -250,9 +312,47 @@ export default function SprintPlanning() {
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{projectId ? 'Project Sprints' : 'Global Sprint Planning'}</h1>
             <p className="text-slate-500 dark:text-slate-400">Define sprint goals, assign timeframe, and request approvals.</p>
           </div>
-          <Button onClick={() => setIsModalOpen(true)} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white self-start md:self-auto shadow-md">
-            <Plus className="h-4 w-4 mr-2" /> Create Sprint
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative">
+              <button 
+                onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                className="flex items-center justify-between w-full sm:w-auto min-w-[220px] h-10 px-4 py-2 text-sm font-medium bg-white border rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors shadow-sm"
+              >
+                {sortOptions.find(o => o.value === sortOrder)?.label}
+                <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
+              </button>
+              <AnimatePresence>
+                {isSortDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setIsSortDropdownOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute z-40 right-0 w-full sm:min-w-[220px] mt-2 bg-white border rounded-xl shadow-xl border-slate-200 dark:bg-slate-800 dark:border-slate-700 overflow-hidden"
+                    >
+                      {sortOptions.map(option => (
+                        <button
+                          key={option.value}
+                          className={`block w-full px-4 py-3 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${sortOrder === option.value ? 'bg-blue-50/50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}
+                          onClick={() => {
+                            setSortOrder(option.value)
+                            setIsSortDropdownOpen(false)
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+            
+            <Button onClick={() => setIsModalOpen(true)} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white h-10 shadow-md px-5">
+              <Plus className="h-4 w-4 mr-2" /> Create Sprint
+            </Button>
+          </div>
         </div>
 
       <AnimatePresence>
@@ -327,13 +427,85 @@ export default function SprintPlanning() {
             </motion.div>
           </>
         )}
+
+        {assignModal.open && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={() => setAssignModal({ open: false, sprintId: null })}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="fixed left-1/2 top-1/2 z-50 w-[95%] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[24px] border border-slate-200 bg-white p-6 md:p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900"
+            >
+              <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">
+                Assign to Project
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Select a project to move this sprint into.</p>
+              
+              <div className="space-y-4">
+                <div className="relative">
+                  <button 
+                    type="button"
+                    onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                    className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium bg-white border rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors shadow-sm"
+                  >
+                    {selectedProjectId ? projects.find(p => p.id === selectedProjectId)?.name : "Select a project..."}
+                    <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
+                  </button>
+                  <AnimatePresence>
+                    {isProjectDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setIsProjectDropdownOpen(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute z-40 w-full mt-2 bg-white border rounded-xl shadow-xl border-slate-200 dark:bg-slate-800 dark:border-slate-700 overflow-hidden max-h-[200px] overflow-y-auto"
+                        >
+                          {projects.map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className={`block w-full px-4 py-3 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${selectedProjectId === p.id ? 'bg-blue-50/50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}
+                              onClick={() => {
+                                setSelectedProjectId(p.id)
+                                setIsProjectDropdownOpen(false)
+                              }}
+                            >
+                              {p.name}
+                            </button>
+                          ))}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-8">
+                  <Button type="button" variant="outline" className="rounded-xl" onClick={() => setAssignModal({ open: false, sprintId: null })}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAssignProject} disabled={!selectedProjectId} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+                    Assign Sprint
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
       </AnimatePresence>
 
         {loading ? (
           <div className="text-center py-8">Loading sprints...</div>
         ) : (
           <div className="space-y-4">
-            {sprints.map(s => (
+            {sortedSprints.map(s => (
               <Card key={s.id} className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/50">
                 <CardContent className="p-4 flex flex-col md:flex-row items-start justify-between gap-4">
                   <div>
@@ -347,7 +519,11 @@ export default function SprintPlanning() {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-sm text-slate-500">
-                        {formatDate(s.start_date)} to {formatDate(s.end_date)}
+                        {s.start_date || s.end_date ? (
+                          `${formatDate(s.start_date) || 'TBD'} to ${formatDate(s.end_date) || 'TBD'}`
+                        ) : (
+                          'No dates scheduled'
+                        )}
                       </p>
                       {sprintApprovals[s.id] && (
                         <div title={`Share Status: ${sprintApprovals[s.id]}`}>
@@ -381,6 +557,11 @@ export default function SprintPlanning() {
                     {projectId && (
                       <Button variant="outline" size="sm" onClick={() => addToGantt(s)} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30">
                         <BarChart className="h-4 w-4 mr-2" /> Add to GChart
+                      </Button>
+                    )}
+                    {!projectId && (
+                      <Button variant="outline" size="sm" onClick={() => setAssignModal({ open: true, sprintId: s.id })} className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30">
+                        <FolderInput className="h-4 w-4 mr-2" /> Assign to Project
                       </Button>
                     )}
                     <Button variant="outline" size="sm" onClick={() => requestApproval(s.id)}>

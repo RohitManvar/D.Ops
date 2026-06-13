@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import DailyNoteApplication from './components/DailyNoteApplication'
 import LoginPage from './components/LoginPage'
 import PublicSharePage from './components/PublicSharePage'
+import PublicDocumentPage from './components/PublicDocumentPage'
 import DashboardHub from './components/DashboardHub'
 import ProductBacklog from './components/workspace/ProductBacklog'
 import SprintPlanning from './components/workspace/SprintPlanning'
@@ -37,6 +38,7 @@ function App() {
                   {/* Public Routes */}
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/share/:token" element={<PublicSharePage />} />
+                  <Route path="/doc/:token" element={<PublicDocumentPage />} />
 
                   {/* Protected Routes */}
                   <Route path="/" element={<ProtectedRoute><DashboardHub /></ProtectedRoute>} />
