@@ -97,6 +97,9 @@ export default function DashboardHub() {
     { 
       to: "/sprints", title: "Sprint Planning", icon: Flag, desc: "Define goals, assign tasks, and plan weeks"
     },
+    {
+      to: "/whole-sprint", title: "Product Plan", icon: CalendarDays, desc: "Holistic view of all tasks and their chronological execution"
+    },
     { 
       to: "/kanban", title: "Execution Board", icon: Kanban, desc: "Kanban board for daily execution workflow"
     },

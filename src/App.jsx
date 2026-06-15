@@ -19,6 +19,7 @@ import CommandPalette from './components/CommandPalette'
 import MeshBackground from './components/ui/MeshBackground'
 import DocumentHub from './components/workspace/DocumentHub'
 import WordEditor from './components/workspace/WordEditor'
+import WholeSprintTimeline from './components/workspace/WholeSprintTimeline'
 
 
 import SettingsHub from './components/workspace/SettingsHub'
@@ -45,6 +46,7 @@ function App() {
                   <Route path="/daily-notes" element={<ProtectedRoute><DailyNoteApplication /></ProtectedRoute>} />
                   <Route path="/backlog" element={<ProtectedRoute><ProductBacklog /></ProtectedRoute>} />
                   <Route path="/sprints" element={<ProtectedRoute><SprintPlanning /></ProtectedRoute>} />
+                  <Route path="/whole-sprint" element={<ProtectedRoute><WholeSprintTimeline /></ProtectedRoute>} />
                   <Route path="/kanban" element={<ProtectedRoute><KanbanBoard /></ProtectedRoute>} />
                   <Route path="/github-work" element={<ProtectedRoute><GithubWork /></ProtectedRoute>} />
                   <Route path="/daily-update" element={<ProtectedRoute><DailyUpdateModule /></ProtectedRoute>} />
@@ -60,6 +62,7 @@ function App() {
                   <Route path="/project/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
                   <Route path="/project/:projectId/backlog" element={<ProtectedRoute><ProductBacklog /></ProtectedRoute>} />
                   <Route path="/project/:projectId/sprints" element={<ProtectedRoute><SprintPlanning /></ProtectedRoute>} />
+                  <Route path="/project/:projectId/whole-sprint" element={<ProtectedRoute><WholeSprintTimeline /></ProtectedRoute>} />
                   <Route path="/project/:projectId/documents" element={<ProtectedRoute><DocumentHub /></ProtectedRoute>} />
                   <Route path="/project/:projectId/documents/:id" element={<ProtectedRoute><WordEditor /></ProtectedRoute>} />
 

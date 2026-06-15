@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Layers, Flag, FileText, BarChart, Loader2, Settings } from 'lucide-react';
+import { ArrowLeft, Layers, Flag, FileText, BarChart, Loader2, Settings, CalendarDays } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,12 @@ export default function ProjectDashboard() {
       title: "Sprint Planning", 
       icon: Flag, 
       desc: "Plan sprints for this project" 
+    },
+    {
+      to: `/project/${projectId}/whole-sprint`,
+      title: "Product Plan",
+      icon: CalendarDays,
+      desc: "Holistic view of all tasks and their chronological execution"
     },
     {
       to: `/project/${projectId}/documents`, 
