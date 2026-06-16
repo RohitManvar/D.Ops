@@ -22,6 +22,23 @@ D.Ops is designed to help you track daily summaries, plan projects with advanced
 - **Real-Time Data Sync:** Secure cloud database storage via Supabase with automatic syncing across devices.
 - **Dark Mode Support:** Beautifully designed light and dark modes tailored for developer aesthetics.
 
+## 🏗️ Architecture
+
+The application follows a modular, feature-centric architecture built on React:
+
+- **`src/components/`**: Contains the core application views and reusable UI elements. Divided into logical domains:
+  - **`workspace/`**: Components related to project planning, Gantt charts, and sprint tracking.
+  - **`ui/`**: Generic, reusable design system components (buttons, modals, tooltips).
+  - **`reviewer/`**: Components for reviewing and managing project deliverables.
+- **`src/context/`**: React Context providers for global state management.
+  - `AuthProvider.jsx`: Manages user sessions and Supabase authentication state.
+  - `ThemeProvider.jsx`: Handles global light/dark mode toggling.
+- **`src/hooks/`**: Custom React hooks for encapsulating complex business logic and data fetching, such as `useNotesManager.jsx`.
+- **`src/lib/`**: Core utilities, database clients, and helper functions.
+  - `supabaseClient.js`: Initialization and configuration of the Supabase client.
+  - `offlineSync.js`: Logic for local caching and offline capabilities.
+  - `animations.js`: Framer Motion animation variants.
+
 ## 🛠️ Technology Stack
 
 - **Frontend:** React 19, Vite
