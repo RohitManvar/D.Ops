@@ -139,7 +139,7 @@ export default function KanbanBoard() {
               placeholder="Quick add task..." 
               value={newTaskTitle}
               onChange={e => setNewTaskTitle(e.target.value)}
-              className="w-64 rounded-xl"
+              className="w-full sm:w-64 rounded-xl"
             />
             <Button type="submit" className="rounded-xl">
               <Plus className="h-4 w-4" />

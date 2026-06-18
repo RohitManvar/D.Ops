@@ -413,7 +413,7 @@ function ShortcutsModal({ onClose }) {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 w-80"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 w-[90vw] sm:w-80"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-lg flex items-center gap-2">
@@ -793,11 +793,20 @@ export default function DailyUpdateModule() {
         
         {/* Top Header Row */}
         <div className="flex items-center justify-between mb-6 print:hidden">
-          <Link to="/">
-            <Button variant="ghost" className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl">
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          <div className="flex items-center gap-2">
+            <Link to="/">
+              <Button variant="ghost" className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl px-2 sm:px-4">
+                <ArrowLeft className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Back</span>
+              </Button>
+            </Link>
+            <Button 
+              variant="outline" 
+              className="lg:hidden rounded-xl h-9 px-3" 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              <Menu className="h-4 w-4" />
             </Button>
-          </Link>
+          </div>
 
           <div className="flex items-center gap-3">
             <AnimatePresence>

@@ -625,7 +625,6 @@ export default function WholeSprintTimeline() {
                                     </div>
 
                                     <div className="w-[25%] pr-4 flex items-center">
-                                      {hasTimeline ? (
                                         <div className="w-full h-8 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden relative shadow-inner">
                                           <div 
                                             className={`h-full transition-all duration-700 ease-out flex items-center justify-end pr-2 ${parseInt(progStr) === 100 ? 'bg-emerald-500' : 'bg-blue-500'} relative`}
@@ -648,11 +647,6 @@ export default function WholeSprintTimeline() {
                                             </div>
                                           )}
                                         </div>
-                                      ) : (
-                                        <div className="w-full h-8 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg flex items-center justify-center opacity-50">
-                                          <span className="text-[10px] text-slate-400">Add timeline to view</span>
-                                        </div>
-                                      )}
                                     </div>
 
                                     <div className="w-[5%] flex justify-end pr-2 opacity-0 group-hover/task:opacity-100 transition-opacity">

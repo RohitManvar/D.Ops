@@ -203,8 +203,8 @@ export default function DashboardHub() {
           {/* Right — actions */}
           <div className="flex items-center gap-1 shrink-0">
             {!isReviewer && (
-              <Button onClick={() => setShowShare(true)} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs px-3 mr-2">
-                <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share Work
+              <Button onClick={() => setShowShare(true)} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs px-2 md:px-3 mr-1 md:mr-2">
+                <Share2 className="h-3.5 w-3.5 md:mr-1.5" /> <span className="hidden md:inline">Share Work</span>
               </Button>
             )}
 
@@ -287,7 +287,7 @@ export default function DashboardHub() {
               </motion.div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
               {projects.length === 0 && !showNewProject ? (
                 <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
                   <FolderKanban className="mx-auto h-8 w-8 text-slate-300 mb-2" />
