@@ -169,17 +169,23 @@ const MenuBar = ({ editor }) => {
 
       <select 
         onChange={(e) => {
-          if (e.target.value) {
+          if (e.target.value && e.target.value !== '16') {
             editor.chain().focus().setFontSize(`${e.target.value}pt`).run();
           } else {
             editor.chain().focus().unsetFontSize().run();
           }
         }}
-        value={(editor.getAttributes('textStyle').fontSize || '').replace(/px|pt|em|rem/g, '')}
-        className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-1 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        value={(() => {
+          const size = editor.getAttributes('textStyle').fontSize;
+          if (size) return size.replace(/px|pt|em|rem/g, '');
+          if (editor.isActive('heading', { level: 1 })) return '32';
+          if (editor.isActive('heading', { level: 2 })) return '24';
+          if (editor.isActive('heading', { level: 3 })) return '20';
+          return '16';
+        })()}
+        className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-1 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
         title="Font Size"
       >
-        <option value="">Size</option>
         {FONT_SIZES.map(size => <option key={size} value={size}>{size}</option>)}
       </select>
 
