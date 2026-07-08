@@ -17,8 +17,9 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
-import { AlertCircle, FileText, Printer, Download } from "lucide-react";
+import { AlertCircle, FileText, Printer, Download, Save, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import html2pdf from 'html2pdf.js';
 
 const FontSize = Extension.create({
@@ -68,9 +69,14 @@ const FontSize = Extension.create({
 
 export default function PublicDocumentPage() {
   const { token } = useParams();
+  const { addToast } = useToast();
   const [docData, setDocData] = useState(null);
+  const [permissionLevel, setPermissionLevel] = useState('read');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [reviewerFeedback, setReviewerFeedback] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -94,33 +100,83 @@ export default function PublicDocumentPage() {
     editable: false,
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none min-h-[800px] p-8 md:p-12 bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 print:shadow-none print:border-none print:p-0',
+        class: 'prose dark:prose-invert max-w-none min-h-[800px] p-8 md:p-12 bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 print:shadow-none print:border-none print:p-0 focus:outline-none',
       },
     },
   });
 
   useEffect(() => {
+    if (editor && permissionLevel) {
+      editor.setEditable(permissionLevel === 'write');
+    }
+  }, [editor, permissionLevel]);
+
+  useEffect(() => {
     const load = async () => {
-      const { data, error } = await supabase
-        .from('documents')
+      // 1. Fetch link data
+      const { data: linkData, error: linkError } = await supabase
+        .from('shared_links')
         .select('*')
-        .eq('share_token', token)
+        .eq('token', token)
         .single();
 
-      if (error || !data) {
+      if (linkError || !linkData || linkData.share_type !== 'document') {
         setError("This document link is invalid or has been deleted.");
         setLoading(false);
         return;
       }
 
-      setDocData(data);
+      setPermissionLevel(linkData.permission_level || 'read');
+
+      // 2. Fetch document data
+      const { data: docData, error: docError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', linkData.document_id)
+        .single();
+
+      if (docError || !docData) {
+        setError("Document not found.");
+        setLoading(false);
+        return;
+      }
+
+      setDocData(docData);
       if (editor && !editor.isDestroyed) {
-        editor.commands.setContent(data.content);
+        editor.commands.setContent(docData.content);
       }
       setLoading(false);
     };
     load();
   }, [token, editor]);
+
+  const saveChanges = async () => {
+    if (!docData || permissionLevel !== 'write' || !editor) return;
+    try {
+      setSaving(true);
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          content: editor.getHTML(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', docData.id);
+
+      if (error) throw error;
+      addToast("Changes saved successfully", "success");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to save changes", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submitFeedback = () => {
+    if (!reviewerFeedback.trim()) return;
+    setFeedbackSent(true);
+    addToast("Feedback submitted to document owner!", "success");
+  };
 
   const exportToPDF = () => {
     const element = document.querySelector('.ProseMirror');
@@ -163,10 +219,21 @@ export default function PublicDocumentPage() {
         <div className="flex items-center gap-3">
           <FileText className="h-5 w-5 text-blue-500" />
           <span className="font-semibold text-slate-800 dark:text-slate-200">{docData.title || "Untitled Document"}</span>
-          <span className="ml-2 text-xs text-slate-400 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5">Read Only</span>
+          <span className={`ml-2 text-[10px] font-bold uppercase tracking-wider rounded-md px-2 py-0.5 ${
+            permissionLevel === 'write' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+            permissionLevel === 'review' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+            'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+          }`}>
+            {permissionLevel === 'write' ? 'Write Access' : permissionLevel === 'review' ? 'Review Mode' : 'Read Only'}
+          </span>
         </div>
         
         <div className="flex items-center gap-2">
+          {permissionLevel === 'write' && (
+            <Button size="sm" onClick={saveChanges} disabled={saving} className="h-8 gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm mr-2">
+              <Save className="h-3.5 w-3.5" /> {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => window.print()} className="hidden sm:flex h-8 gap-1.5 rounded-lg bg-white dark:bg-slate-800">
              <Printer className="h-3.5 w-3.5" /> Print
           </Button>
@@ -180,6 +247,36 @@ export default function PublicDocumentPage() {
       <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center print:p-0 print:overflow-visible relative">
         <div className="w-full max-w-[816px] print:max-w-none pb-32">
           <EditorContent editor={editor} />
+          
+          {/* Reviewer Feedback Box */}
+          {permissionLevel === 'review' && (
+            <div className="mt-8 p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm print:hidden">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Reviewer Feedback</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                Leave your comments or suggestions for the document owner.
+              </p>
+              {feedbackSent ? (
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-400 text-sm flex items-center gap-2">
+                  <span className="flex-1">Feedback submitted successfully. Thank you!</span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <textarea
+                    value={reviewerFeedback}
+                    onChange={(e) => setReviewerFeedback(e.target.value)}
+                    placeholder="Type your feedback here..."
+                    rows={4}
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                  <div className="flex justify-end">
+                    <Button onClick={submitFeedback} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+                      <Send className="h-4 w-4 mr-2" /> Submit Feedback
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -26,6 +26,7 @@ export default function SharePanel({ open, onClose, notes }) {
 
   const [shareType, setShareType] = useState("month"); // "note" | "week" | "month"
   const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [permissionLevel, setPermissionLevel] = useState("read"); // "read" | "write" | "review"
   const [customMessage, setCustomMessage] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -125,6 +126,7 @@ export default function SharePanel({ open, onClose, notes }) {
       date_range_start: dateRangeStart,
       date_range_end: dateRangeEnd,
       custom_message: customMessage.trim() || null,
+      permission_level: permissionLevel, // New field for role-based access
       created_at: new Date().toISOString(),
     };
 
@@ -214,7 +216,27 @@ export default function SharePanel({ open, onClose, notes }) {
   const deleteLink = async (id) => {
     await supabase.from("shared_links").delete().eq("id", id);
     setExistingLinks(prev => prev.filter(l => l.id !== id));
+    if (generatedLink?.id === id) setGeneratedLink(null);
     addToast("Link deleted", "deleted");
+  };
+
+  const updateLinkPermission = async (id, newPermission) => {
+    const { error } = await supabase
+      .from("shared_links")
+      .update({ permission_level: newPermission })
+      .eq("id", id);
+      
+    if (error) {
+      addToast("Failed to update permission", "error");
+      return;
+    }
+    
+    // Update local state
+    setExistingLinks(prev => prev.map(l => l.id === id ? { ...l, permission_level: newPermission } : l));
+    if (generatedLink?.id === id) {
+      setGeneratedLink({ ...generatedLink, permission_level: newPermission });
+    }
+    addToast("Permission updated!", "success");
   };
 
   const shareTypeOptions = [
@@ -396,6 +418,28 @@ export default function SharePanel({ open, onClose, notes }) {
                 </AnimatePresence>
               </div>
 
+              {/* Permission level selection */}
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                  Link Permission Level
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{value: "read", label: "Read Only"}, {value: "write", label: "Edit / Write"}, {value: "review", label: "Review / Comment"}].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setPermissionLevel(opt.value)}
+                      className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-2 text-center transition ${
+                        permissionLevel === opt.value
+                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-sm"
+                          : "border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      <span className="text-xs font-medium">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Generate public link button (Only for Daily Notes) */}
               <div className="space-y-3">
                 {targetModule === "daily_notes" && (
@@ -468,9 +512,20 @@ export default function SharePanel({ open, onClose, notes }) {
                     animate={{ opacity: 1, y: 0 }}
                     className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4 space-y-3"
                   >
-                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                      <Check className="h-4 w-4" />
-                      <span className="text-sm font-medium">Link ready!</span>
+                    <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300">
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4" />
+                        <span className="text-sm font-medium">Link ready!</span>
+                      </div>
+                      <select 
+                        value={generatedLink.permission_level || 'read'}
+                        onChange={(e) => updateLinkPermission(generatedLink.id, e.target.value)}
+                        className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 text-xs font-bold uppercase tracking-wider rounded-md px-2 py-1 border-none focus:ring-0 cursor-pointer outline-none"
+                      >
+                        <option value="read">Read Only</option>
+                        <option value="write">Write</option>
+                        <option value="review">Review</option>
+                      </select>
                     </div>
                     <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 px-3 py-2">
                       <span className="text-xs text-slate-500 truncate flex-1">{generatedLink.url}</span>
@@ -481,11 +536,28 @@ export default function SharePanel({ open, onClose, notes }) {
                         <Copy className="h-3.5 w-3.5 text-slate-500" />
                       </button>
                     </div>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <Button
+                        onClick={() => copyLink(generatedLink.url)}
+                        className="w-full rounded-xl h-9 text-sm"
+                        variant="default"
+                      >
+                        <Copy className="mr-2 h-3.5 w-3.5" /> Copy
+                      </Button>
+                      <Button
+                        onClick={() => window.open(generatedLink.url, '_blank')}
+                        className="w-full rounded-xl h-9 text-sm"
+                        variant="outline"
+                      >
+                        <Globe className="mr-2 h-3.5 w-3.5" /> Open
+                      </Button>
+                    </div>
                     <Button
-                      onClick={() => copyLink(generatedLink.url)}
-                      className="w-full rounded-xl h-9 text-sm"
+                      onClick={() => window.open(`mailto:?subject=Shared Document via D.Ops&body=Here is the link to the document: ${generatedLink.url}`)}
+                      className="w-full rounded-xl h-9 text-sm mt-2"
+                      variant="secondary"
                     >
-                      <Copy className="mr-2 h-3.5 w-3.5" /> Copy Link
+                      <Share2 className="mr-2 h-3.5 w-3.5" /> Share via Email
                     </Button>
                   </motion.div>
                 )}
@@ -511,8 +583,26 @@ export default function SharePanel({ open, onClose, notes }) {
                   {existingLinks.map(link => (
                     <div key={link.id} className="rounded-2xl border border-slate-200 dark:border-slate-600 p-3 flex items-start gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-700 dark:text-slate-300 capitalize">
-                          {link.share_type} · {link.date_range_start}
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 capitalize">
+                            {link.share_type}
+                          </p>
+                          <select 
+                            value={link.permission_level || 'read'}
+                            onChange={(e) => updateLinkPermission(link.id, e.target.value)}
+                            className={`px-1 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider cursor-pointer border-none focus:ring-0 outline-none ${
+                              link.permission_level === 'write' ? 'bg-blue-100 text-blue-700' : 
+                              link.permission_level === 'review' ? 'bg-purple-100 text-purple-700' : 
+                              'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            <option value="read">Read Only</option>
+                            <option value="write">Write</option>
+                            <option value="review">Review</option>
+                          </select>
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          {link.date_range_start}
                           {link.date_range_start !== link.date_range_end ? ` → ${link.date_range_end}` : ""}
                         </p>
                         <p className="text-[10px] text-slate-400 truncate mt-0.5">

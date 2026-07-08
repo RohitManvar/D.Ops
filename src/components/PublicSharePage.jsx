@@ -27,10 +27,11 @@ function TagPill({ tag }) {
   );
 }
 
-function NoteCard({ note, highlight }) {
+function NoteCard({ note, highlight, permission, onToggleTask }) {
   const doneTasks = note.updates?.filter(u => u.done && u.text.trim()) || [];
   const pendingTasks = note.updates?.filter(u => !u.done && u.text.trim()) || [];
   const allTasks = note.updates?.filter(u => u.text.trim()) || [];
+  const canEdit = permission === 'write';
 
   return (
     <motion.div
@@ -83,10 +84,16 @@ function NoteCard({ note, highlight }) {
           </p>
           {allTasks.map(u => (
             <div key={u.id} className="flex items-start gap-2">
-              {u.done
-                ? <CheckSquare className={`h-4 w-4 mt-0.5 shrink-0 ${highlight ? "text-emerald-400" : "text-emerald-500"}`} />
-                : <Square className={`h-4 w-4 mt-0.5 shrink-0 ${highlight ? "text-slate-500" : "text-slate-300"}`} />
-              }
+              <button 
+                onClick={() => canEdit && onToggleTask(note.id, u.id)}
+                disabled={!canEdit}
+                className={`mt-0.5 shrink-0 ${canEdit ? 'cursor-pointer hover:scale-110 transition-transform' : 'cursor-default'}`}
+              >
+                {u.done
+                  ? <CheckSquare className={`h-4 w-4 ${highlight ? "text-emerald-400" : "text-emerald-500"}`} />
+                  : <Square className={`h-4 w-4 ${highlight ? "text-slate-500" : "text-slate-300"}`} />
+                }
+              </button>
               <span className={`text-sm ${u.done ? "" : "opacity-60"} ${highlight ? "text-slate-200" : "text-slate-700"}`}>
                 {u.text}
               </span>
@@ -248,6 +255,25 @@ export default function PublicSharePage() {
     load();
   }, [token]);
 
+  const handleToggleTask = async (noteId, taskId) => {
+    // Only allow edit if permission is write
+    if (shareData?.permission_level !== 'write') return;
+
+    // Optimistic UI update
+    setNotes(prevNotes => prevNotes.map(n => {
+      if (n.id !== noteId) return n;
+      const updatedTasks = n.updates.map(u => u.id === taskId ? { ...u, done: !u.done } : u);
+      return { ...n, updates: updatedTasks };
+    }));
+
+    // Update in Supabase
+    const noteToUpdate = notes.find(n => n.id === noteId);
+    if (noteToUpdate) {
+      const updatedTasks = noteToUpdate.updates.map(u => u.id === taskId ? { ...u, done: !u.done } : u);
+      await supabase.from("notes").update({ updates: updatedTasks }).eq("id", noteId);
+    }
+  };
+
   const selectedNote = notes.find(n => n.date === selectedDate);
   const notesWithContent = notes.filter(
     n => n.summary?.trim() || n.updates?.some(u => u.text.trim()) || n.blockers?.trim()
@@ -342,7 +368,7 @@ export default function PublicSharePage() {
         {isMonth && (
           <div className="space-y-6">
             <MonthCalendar notes={notes} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-            {selectedNote && <NoteCard note={selectedNote} highlight={false} />}
+            {selectedNote && <NoteCard note={selectedNote} highlight={false} permission={shareData?.permission_level} onToggleTask={handleToggleTask} />}
           </div>
         )}
 
@@ -353,14 +379,30 @@ export default function PublicSharePage() {
               <div className="text-center py-10 text-slate-400 text-sm">No content found for this period.</div>
             )}
             {notesWithContent.map((note, i) => (
-              <NoteCard key={note.id} note={note} highlight={i === 0} />
+              <NoteCard key={note.id} note={note} highlight={i === 0} permission={shareData?.permission_level} onToggleTask={handleToggleTask} />
             ))}
           </div>
         )}
 
+        {/* Reviewer Add Note Form */}
+        {shareData?.permission_level === 'review' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 rounded-2xl border border-slate-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">Leave a Review Note</h3>
+            <textarea
+              placeholder="Write your feedback or review notes here..."
+              rows={4}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 mb-3"
+            />
+            <button className="bg-slate-900 text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-slate-800 transition">
+              Submit Feedback
+            </button>
+            <p className="text-[11px] text-slate-400 mt-2">Note: This will notify the document owner.</p>
+          </motion.div>
+        )}
+
         {/* Footer */}
-        <p className="text-center text-xs text-slate-400 pb-4">
-          Shared via D.Ops · Read-only view
+        <p className="text-center text-xs text-slate-400 pb-4 mt-8">
+          Shared via D.Ops · {shareData?.permission_level === 'write' ? 'Write access enabled' : shareData?.permission_level === 'review' ? 'Review access enabled' : 'Read-only view'}
         </p>
       </div>
     </div>

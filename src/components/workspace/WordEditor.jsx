@@ -25,6 +25,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import DocumentShareModal from '@/components/DocumentShareModal';
 import { 
   ArrowLeft, Save, Bold, Italic, Underline as UnderlineIcon, 
   Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, 
@@ -340,6 +341,7 @@ export default function WordEditor() {
   const [lastSaved, setLastSaved] = useState(null);
   const [docData, setDocData] = useState(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -466,30 +468,9 @@ export default function WordEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [title, editor]);
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!docData) return;
-    try {
-      if (docData.share_token) {
-        // Already shared, just copy
-        const url = `${window.location.origin}/doc/${docData.share_token}`;
-        navigator.clipboard.writeText(url);
-        addToast("Public link copied to clipboard!", "success");
-        return;
-      }
-
-      // Generate new share token
-      const shareToken = crypto.randomUUID();
-      const { error } = await supabase.from('documents').update({ share_token: shareToken }).eq('id', id);
-      if (error) throw error;
-      
-      const url = `${window.location.origin}/doc/${shareToken}`;
-      navigator.clipboard.writeText(url);
-      setDocData({ ...docData, share_token: shareToken });
-      addToast("Public link generated and copied!", "success");
-    } catch (err) {
-      console.error(err);
-      addToast("Failed to generate share link", "error");
-    }
+    setShareModalOpen(true);
   };
 
   const exportToPDF = () => {
@@ -555,7 +536,7 @@ export default function WordEditor() {
           </span>
           
           <Button variant="outline" size="sm" onClick={handleShare} className="h-8 gap-1.5 rounded-lg bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 shadow-sm ml-2">
-            <Share2 className="h-3.5 w-3.5" /> {docData?.share_token ? 'Copy Link' : 'Share'}
+            <Share2 className="h-3.5 w-3.5" /> Share
           </Button>
 
           <div className="relative">
@@ -597,6 +578,12 @@ export default function WordEditor() {
           <EditorContent editor={editor} />
         </div>
       </div>
+
+      <DocumentShareModal 
+        open={shareModalOpen} 
+        onClose={() => setShareModalOpen(false)} 
+        documentId={id} 
+      />
     </div>
   );
 }
