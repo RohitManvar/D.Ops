@@ -88,6 +88,34 @@ const MenuBar = ({ editor }) => {
   const [imageUrl, setImageUrl] = useState('');
   const [painterActive, setPainterActive] = useState(false);
   const [capturedMarks, setCapturedMarks] = useState(null);
+  const [currentFontSize, setCurrentFontSize] = useState('16');
+
+  useEffect(() => {
+    if (!editor) return;
+    const updateSize = () => {
+      const size = editor.getAttributes('textStyle').fontSize;
+      if (size) {
+        setCurrentFontSize(size.replace(/px|pt|em|rem/g, ''));
+      } else if (editor.isActive('heading', { level: 1 })) {
+        setCurrentFontSize('32');
+      } else if (editor.isActive('heading', { level: 2 })) {
+        setCurrentFontSize('24');
+      } else if (editor.isActive('heading', { level: 3 })) {
+        setCurrentFontSize('20');
+      } else {
+        setCurrentFontSize('16');
+      }
+    };
+    
+    editor.on('selectionUpdate', updateSize);
+    editor.on('transaction', updateSize);
+    updateSize(); // Initial check
+    
+    return () => {
+      editor.off('selectionUpdate', updateSize);
+      editor.off('transaction', updateSize);
+    };
+  }, [editor]);
 
   useEffect(() => {
     if (!editor || !painterActive || !capturedMarks) return;
@@ -169,20 +197,15 @@ const MenuBar = ({ editor }) => {
 
       <select 
         onChange={(e) => {
-          if (e.target.value && e.target.value !== '16') {
-            editor.chain().focus().setFontSize(`${e.target.value}pt`).run();
+          const newSize = e.target.value;
+          if (newSize && newSize !== '16') {
+            editor.chain().focus().setFontSize(`${newSize}pt`).run();
           } else {
             editor.chain().focus().unsetFontSize().run();
           }
+          setCurrentFontSize(newSize);
         }}
-        value={(() => {
-          const size = editor.getAttributes('textStyle').fontSize;
-          if (size) return size.replace(/px|pt|em|rem/g, '');
-          if (editor.isActive('heading', { level: 1 })) return '32';
-          if (editor.isActive('heading', { level: 2 })) return '24';
-          if (editor.isActive('heading', { level: 3 })) return '20';
-          return '16';
-        })()}
+        value={Number(currentFontSize) || 16}
         className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-1 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
         title="Font Size"
       >
